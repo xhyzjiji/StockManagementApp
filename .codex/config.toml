@@ -1,0 +1,25 @@
+[features]
+hooks = true
+
+[mcp_servers.adk-mobile]
+command = "npx"
+args = [
+  "-y",
+  "--registry=https://bnpm.byted.org",
+  "@byted-tiktok/adk-mobile-mcp@latest",
+  "--workflow-dir",
+  ".ttadk/.adk-mobile"
+]
+
+  [mcp_servers.adk-mobile.env]
+  platform = "Android"
+
+[mcp_servers.alchemist]
+command = "npx"
+args = [
+  "-y",
+  "--registry=https://bnpm.byted.org",
+  "@byted/alchemist-mcp@latest",
+  "mcp"
+]
+env = { }

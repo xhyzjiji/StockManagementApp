@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "default_source": "ttadk-market",
+  "plugin_packages": {
+    "ttadk/android": "*"
+  },
+  "plugins": {
+    "ttpns/quality": "*"
+  }
+}

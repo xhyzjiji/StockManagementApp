@@ -1,0 +1,62 @@
+{
+  "skill_name": "kb-evals-creator",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Create an evals.json file for the TikTok Search module at /path/to/project/Modules/Search/Classes/Core/Manager. I need 3 questions: one about the entry point, one about search flow, and one about domain terminology.",
+      "expected_output": "A valid evals.json file saved to the correct location with 3 well-structured questions, proper assertions checking for specific answer content, and provenance tracking.",
+      "files": [],
+      "expectations": [
+        "Creates evals.json at docs/evals/evals.json relative to the doc root",
+        "File contains valid JSON with correct schema structure",
+        "Has 3 questions with unique IDs (q1, q2, q3)",
+        "Each question has at least 2 assertions",
+        "Assertions check specific answer content such as symbols, APIs, call-chain nodes, or domain concepts",
+        "No assertion checks for docs path mentions such as CLAUDE.md or docs/interface.md",
+        "Each question has provenance tracking with type field",
+        "doc_root field uses a repo-root-relative module root path when the docs live in the repository",
+        "mode field is set to 'qa'",
+        "Questions are specific and answerable (not vague)",
+        "Does not create more questions than requested",
+        "Generation follows docs-first reading plus targeted codebase exploration"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "I have an existing evals.json at /path/to/project/Modules/Comment/docs/evals/evals.json. Add 2 new questions about the comment posting workflow and comment UI patterns.",
+      "expected_output": "Updated evals.json with 2 additional questions appended to existing questions array, maintaining consistent structure and continuing the question ID sequence.",
+      "files": [],
+      "expectations": [
+        "Reads existing evals.json before modifying",
+        "Adds exactly 2 new questions to the questions array",
+        "Does not add extra questions beyond the requested count",
+        "New question IDs continue the sequence from existing questions",
+        "New questions follow same structure as existing ones",
+        "Preserves all existing questions and structure",
+        "New questions have proper assertions and provenance",
+        "File remains valid JSON after modification",
+        "At least one question targets workflow behavior and one targets implementation rules based on the prompt",
+        "New assertions avoid docs path references"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "Generate an evals.json for /path/to/project/Modules/Feed with a mix of human and LLM-generated questions. Create 4 questions total: 2 human-authored about feed rendering and scroll performance, and 2 LLM-generated about feed data flow.",
+      "expected_output": "An evals.json file with 4 questions properly marked with provenance showing 2 human-authored and 2 LLM-generated, with appropriate assertions for each question type.",
+      "files": [],
+      "expectations": [
+        "File contains exactly 4 questions",
+        "Does not expand the active question list beyond the requested count",
+        "2 questions have provenance type 'human' with author field",
+        "2 questions have provenance type 'llm' with model and prompt_source fields",
+        "Human questions relate to rendering/performance topics",
+        "LLM questions relate to data flow topics",
+        "All questions have unique IDs",
+        "Each question has 2-3 assertions",
+        "Assertions check for specific technical terms relevant to each topic",
+        "Questions include topics and source_files metadata when known",
+        "Valid JSON structure throughout"
+      ]
+    }
+  ]
+}

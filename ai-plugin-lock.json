@@ -1,0 +1,123 @@
+{
+  "lockfile_version": 1,
+  "generated_by": {
+    "tool": "ttadk",
+    "version": "1.0.28"
+  },
+  "manifest_digest": "735b8b54fe89e35bc46516fe6ce020ca850f4a661c7adf7b8e97e277c0dba36b",
+  "resolved_plugins": {
+    "pkg:plugin:ttadk-plugin:ttadk/android@master#f3e2e34888d4": {
+      "name": "ttadk/android",
+      "install_order": 1,
+      "origin": "package",
+      "package_owner": "ttadk/android",
+      "version_scheme": "ref",
+      "format": "ttadk-plugin",
+      "source_ref": "5e33116e14b3",
+      "source_alias": "ttadk-market",
+      "artifact": {
+        "ref": {
+          "type": "branch",
+          "value": "master"
+        },
+        "commit": "f3e2e34888d4b314f9415ad9a553e3768b417e2a",
+        "content_fingerprint": {
+          "type": "git-object",
+          "path": "plugins/ttadk/android",
+          "object_id": "eba29c8fb71339f16c36e859e412ee31976b238a"
+        }
+      },
+      "integrity": "sha256-+3z2bN/98I1+1ABSPf5bH/2tpiyB44xvdEmwmZewau8="
+    },
+    "pkg:plugin:ttadk-plugin:ttadk/mobile-core@master#f3e2e34888d4": {
+      "name": "ttadk/mobile-core",
+      "install_order": 0,
+      "origin": "package",
+      "package_owner": "ttadk/android",
+      "version_scheme": "ref",
+      "format": "ttadk-plugin",
+      "source_ref": "5e33116e14b3",
+      "source_alias": "ttadk-market",
+      "artifact": {
+        "ref": {
+          "type": "branch",
+          "value": "master"
+        },
+        "commit": "f3e2e34888d4b314f9415ad9a553e3768b417e2a",
+        "content_fingerprint": {
+          "type": "git-object",
+          "path": "plugins/ttadk/mobile-core",
+          "object_id": "2c49b38ba5a99ef879b5a09846adde62ac5113cb"
+        }
+      },
+      "integrity": "sha256-7b7QTGmsWJd8doPY8g4PfvRUl6RzRI7hM4UsR7RbfQI="
+    },
+    "pkg:plugin:ttadk-plugin:ttpns/quality@master#f3e2e34888d4": {
+      "name": "ttpns/quality",
+      "install_order": 2,
+      "origin": "top-level",
+      "version_scheme": "ref",
+      "format": "ttadk-plugin",
+      "source_ref": "5e33116e14b3",
+      "source_alias": "ttadk-market",
+      "artifact": {
+        "ref": {
+          "type": "branch",
+          "value": "master"
+        },
+        "commit": "f3e2e34888d4b314f9415ad9a553e3768b417e2a",
+        "content_fingerprint": {
+          "type": "git-object",
+          "path": "plugins/ttpns/quality",
+          "object_id": "46405756c6a9d111266f6d0c41923160431eefb5"
+        }
+      },
+      "integrity": "sha256-WS91hxsaR8eMS7LdskTOOX7Jw30ZzbQhs/5Vofz7irg=",
+      "source_identity": "ad487344941766827844520839d84219de0ea77b96868ff1d872b6882bb9df5b"
+    }
+  },
+  "plugin_packages": {
+    "ttadk/android": {
+      "resolved": {
+        "version_scheme": "ref",
+        "source_ref": "5e33116e14b3",
+        "manifest_digest": "sha256-2uf1N/RzKIRZG8QctfNnmEBFJR2AYIrbnWVQNegMso0=",
+        "source_alias": "ttadk-market",
+        "artifact": {
+          "ref": {
+            "type": "branch",
+            "value": "master"
+          },
+          "commit": "f3e2e34888d4b314f9415ad9a553e3768b417e2a",
+          "content_fingerprint": {
+            "type": "git-object",
+            "path": "presets/ttadk/android.json",
+            "object_id": "4bf03b485a5b0fc8f077723e9ebff56dd102d3d7"
+          }
+        },
+        "integrity": "sha256-etcegE9YpkKyVsMQe9bdqzKb9RKM5QjdQ/Uegb/PkNg="
+      },
+      "resolved_plugins": [
+        "ttadk/android",
+        "ttadk/mobile-core"
+      ]
+    }
+  },
+  "sources": {
+    "5e33116e14b3": {
+      "default_ref": {
+        "type": "branch",
+        "value": "master"
+      },
+      "format": "ttadk-plugin",
+      "layout": {
+        "package_path_template": "presets/{namespace_path}/{name}.json",
+        "plugin_path_template": "plugins/{namespace_path}/{name}"
+      },
+      "mode": "index",
+      "provider": "default",
+      "type": "git",
+      "url": "git@code.byted.org:tiktok/ttadk_plugin_market.git"
+    }
+  }
+}
