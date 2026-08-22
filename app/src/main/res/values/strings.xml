@@ -1,3 +1,88 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">StockManagementSystem</string>
+    <string name="app_name">库存管理</string>
+
+    <!-- 通用 -->
+    <string name="action_ok">确定</string>
+    <string name="action_cancel">取消</string>
+    <string name="action_save">保存</string>
+    <string name="action_delete">删除</string>
+    <string name="action_edit">编辑</string>
+    <string name="action_rename">重命名</string>
+    <string name="delete_confirm_item">删除 "%1$s"？其属性与参考图将一并删除。</string>
+    <string name="deleted">已删除</string>
+
+    <!-- 仓库 -->
+    <string name="warehouse_title">选择仓库</string>
+    <string name="warehouse_empty">暂无仓库\n点击下方按钮创建你的第一个仓库</string>
+    <string name="warehouse_create">新建仓库</string>
+    <string name="warehouse_name_hint">仓库名称</string>
+    <string name="warehouse_remark_hint">备注（可选）</string>
+    <string name="warehouse_name_required">请输入仓库名称</string>
+    <string name="warehouse_delete_confirm">删除仓库 "%1$s"？其中的类目、物品与流水记录将全部删除！</string>
+
+    <!-- 主页 / 类目 -->
+    <string name="category_empty">该类目下还没有类目\n点击右下角按钮添加</string>
+    <string name="category_add">新建类目</string>
+    <string name="category_name_hint">类目名称（如：饮料、零食）</string>
+    <string name="category_name_required">请输入类目名称</string>
+    <string name="category_delete_confirm">删除类目 "%1$s"？其中的物品将全部删除！</string>
+    <string name="category_item_count">%1$d 种物品</string>
+    <string name="menu_records">出入库记录</string>
+    <string name="menu_rename_warehouse">仓库信息</string>
+
+    <!-- 物品 -->
+    <string name="item_empty">暂无物品\n点击右下角按钮添加物品</string>
+    <string name="item_add">添加物品</string>
+    <string name="item_edit_title">编辑物品</string>
+    <string name="item_new_title">新建物品</string>
+    <string name="item_name_hint">物品名称（如：可乐）</string>
+    <string name="item_name_required">请输入物品名称</string>
+    <string name="item_stock_qty">库存 %1$s</string>
+    <string name="item_delete_confirm">删除物品 "%1$s"？其参考图将一并删除。</string>
+
+    <!-- 属性 -->
+    <string name="attr_add">添加属性</string>
+    <string name="attr_edit_def">编辑属性定义</string>
+    <string name="attrs_setup">属性设置</string>
+    <string name="attrs_empty_hint">该类目还没有属性\n点击下方按钮添加（属性对该类目下所有物品生效）</string>
+    <string name="attr_delete_cascade">删除属性 "%1$s"？该类目下所有物品此属性的值和参考图将被清除。</string>
+    <string name="attr_dialog_title_new">新建属性</string>
+    <string name="attr_dialog_title_edit">编辑属性</string>
+    <string name="attr_name_hint">属性名（如：口味、单价、参考图）</string>
+    <string name="attr_name_required">请输入属性名</string>
+    <string name="attr_name_duplicate">属性名重复</string>
+    <string name="attr_type_text">文本</string>
+    <string name="attr_type_number">数字</string>
+    <string name="attr_type_choice">单选</string>
+    <string name="attr_type_image">图片</string>
+    <string name="attr_options_hint">选项，用逗号分隔（如：有糖,无糖）</string>
+    <string name="attr_options_required">单选类型至少需要两个选项</string>
+    <string name="attr_value_hint">属性值</string>
+    <string name="attr_number_hint">数字</string>
+    <string name="attr_photo_take">拍照</string>
+    <string name="attr_photo_pick">相册</string>
+    <string name="attr_photo_clear">清除</string>
+    <string name="save_success">已保存</string>
+
+    <!-- 出入库 -->
+    <string name="stock_qty_label">当前库存</string>
+    <string name="stock_in">入库</string>
+    <string name="stock_out">出库</string>
+    <string name="stock_current">当前库存：%1$s</string>
+    <string name="stock_qty_hint">数量</string>
+    <string name="stock_qty_required">请输入大于 0 的数量</string>
+    <string name="stock_note_hint">备注（可选）</string>
+    <string name="stock_in_done">入库成功</string>
+    <string name="stock_out_done">出库成功</string>
+    <string name="stock_insufficient">库存不足：当前 %1$s</string>
+    <string name="stock_in_badge">入库 +%1$s</string>
+    <string name="stock_out_badge">出库 -%1$s</string>
+    <string name="stock_change">%1$s → %2$s</string>
+
+    <!-- 流水 -->
+    <string name="record_title">出入库记录</string>
+    <string name="record_empty">暂无出入库记录</string>
+    <string name="record_history_title">最近出入库</string>
+    <string name="record_item_deleted">物品已删除</string>
 </resources>
