@@ -38,6 +38,7 @@ class DbHelper(context: Context) : SQLiteOpenHelper(context, DB_NAME, null, DB_V
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 category_id INTEGER NOT NULL REFERENCES category(id) ON DELETE CASCADE,
                 name TEXT NOT NULL,
+                unit TEXT NOT NULL DEFAULT '',
                 quantity REAL NOT NULL DEFAULT 0,
                 created_at INTEGER NOT NULL
             )
@@ -72,6 +73,7 @@ class DbHelper(context: Context) : SQLiteOpenHelper(context, DB_NAME, null, DB_V
                 warehouse_id INTEGER NOT NULL REFERENCES warehouse(id) ON DELETE CASCADE,
                 item_id INTEGER NOT NULL,
                 item_name TEXT NOT NULL,
+                unit TEXT NOT NULL DEFAULT '',
                 type TEXT NOT NULL,
                 quantity REAL NOT NULL,
                 before_qty REAL NOT NULL,
@@ -102,6 +104,6 @@ class DbHelper(context: Context) : SQLiteOpenHelper(context, DB_NAME, null, DB_V
 
     companion object {
         const val DB_NAME = "stock.db"
-        const val DB_VERSION = 4
+        const val DB_VERSION = 5
     }
 }

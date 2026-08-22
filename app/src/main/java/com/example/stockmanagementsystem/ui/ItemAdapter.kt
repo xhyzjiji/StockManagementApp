@@ -38,7 +38,8 @@ class ItemAdapter(
             vb.textSummary.text = item.attrSummary
             vb.textSummary.visibility =
                 if (item.attrSummary.isEmpty()) android.view.View.GONE else android.view.View.VISIBLE
-            vb.textQty.text = vb.root.context.getString(R.string.item_stock_qty, Fmt.qty(item.quantity))
+            vb.textQty.text = vb.root.context
+                .getString(R.string.item_stock_qty, Fmt.qtyWithUnit(item.quantity, item.unit))
             val image = item.firstImage
             if (image != null) {
                 Bitmaps.loadInto(vb.imageThumb, imageStore.fileOf(image), 192)

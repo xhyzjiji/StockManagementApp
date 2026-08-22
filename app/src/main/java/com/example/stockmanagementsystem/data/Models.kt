@@ -41,6 +41,8 @@ data class Item(
     val id: Long,
     val categoryId: Long,
     val name: String,
+    /** 计量单位：入库/出库/库存展示用，如 件、米、㎡、公斤 */
+    val unit: String,
     val quantity: Double,
     val createdAt: Long,
 )
@@ -49,6 +51,7 @@ data class Item(
 data class ItemSummary(
     val id: Long,
     val name: String,
+    val unit: String,
     val quantity: Double,
     val attrSummary: String,
     val firstImage: String?,
@@ -81,6 +84,8 @@ data class StockRecord(
     val warehouseId: Long,
     val itemId: Long,
     val itemName: String,
+    /** 发生出入库时物品的单位快照 */
+    val unit: String,
     val type: StockType,
     val quantity: Double,
     val beforeQty: Double,

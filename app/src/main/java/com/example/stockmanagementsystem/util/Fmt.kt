@@ -13,6 +13,10 @@ object Fmt {
     fun qty(value: Double): String =
         BigDecimal(value).setScale(3, RoundingMode.HALF_UP).stripTrailingZeros().toPlainString()
 
+    /** 数量+单位展示：单位为空时退化为纯数字 */
+    fun qtyWithUnit(value: Double, unit: String): String =
+        if (unit.isEmpty()) qty(value) else "${qty(value)} $unit"
+
     fun time(millis: Long): String = timeFormat.format(Date(millis))
 
     /** 出入库后的库存计算，出库不允许为负 */

@@ -146,16 +146,21 @@ object Dialogs {
         MaterialAlertDialogBuilder(context).setView(vb.root).show()
     }
 
-    /** 入库/出库弹窗：onOk(数量, 备注)，出库在弹窗层先做超量校验 */
+    /** 入库/出库弹窗：onOk(数量, 备注)，出库在弹窗层先做超量校验；unit 为物品计量单位，可为空 */
     fun stockOp(
         context: Context,
         isIn: Boolean,
         itemName: String,
         currentQty: Double,
+        unit: String,
         onOk: (Double, String) -> Unit,
     ) {
         val vb = DialogStockOpBinding.inflate(LayoutInflater.from(context))
-        vb.textCurrent.text = context.getString(R.string.stock_current, Fmt.qty(currentQty))
+        vb.textCurrent.text =
+            context.getString(R.string.stock_current, Fmt.qtyWithUnit(currentQty, unit))
+        if (unit.isNotEmpty()) {
+            vb.layoutQty.hint = context.getString(R.string.stock_qty_hint_with_unit, unit)
+        }
         val dialog = MaterialAlertDialogBuilder(context)
             .setTitle(
                 context.getString(
@@ -173,7 +178,8 @@ object Dialogs {
                 return@setOnClickListener
             }
             if (!isIn && qty > currentQty) {
-                vb.layoutQty.error = context.getString(R.string.stock_insufficient, Fmt.qty(currentQty))
+                vb.layoutQty.error =
+                    context.getString(R.string.stock_insufficient, Fmt.qtyWithUnit(currentQty, unit))
                 return@setOnClickListener
             }
             dialog.dismiss()

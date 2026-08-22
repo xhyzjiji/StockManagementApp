@@ -69,7 +69,7 @@ class ItemDetailActivity : AppCompatActivity() {
             }
             detail = d
             vb.toolbar.title = d.item.name
-            vb.textQty.text = Fmt.qty(d.item.quantity)
+            vb.textQty.text = Fmt.qtyWithUnit(d.item.quantity, d.item.unit)
             attrAdapter.submit(d.attrs)
             recordAdapter.submit(records)
         }
@@ -77,7 +77,7 @@ class ItemDetailActivity : AppCompatActivity() {
 
     private fun showStockDialog(isIn: Boolean) {
         val d = detail ?: return
-        Dialogs.stockOp(this, isIn, d.item.name, d.item.quantity) { qty, note ->
+        Dialogs.stockOp(this, isIn, d.item.name, d.item.quantity, d.item.unit) { qty, note ->
             Bg.run {
                 val error = try {
                     repo.applyStock(itemId, if (isIn) StockType.IN else StockType.OUT, qty, note)
@@ -90,7 +90,10 @@ class ItemDetailActivity : AppCompatActivity() {
                     if (error != null) {
                         Toast.makeText(
                             this,
-                            getString(R.string.stock_insufficient, Fmt.qty(error.available)),
+                            getString(
+                                R.string.stock_insufficient,
+                                Fmt.qtyWithUnit(error.available, d.item.unit)
+                            ),
                             Toast.LENGTH_SHORT
                         ).show()
                     } else {

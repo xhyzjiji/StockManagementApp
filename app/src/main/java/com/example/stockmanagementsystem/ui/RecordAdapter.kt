@@ -35,16 +35,22 @@ class RecordAdapter(
             val ctx = vb.root.context
             if (r.type == StockType.IN) {
                 vb.textBadge.setBackgroundResource(R.drawable.badge_in)
-                vb.textBadge.text = ctx.getString(R.string.stock_in_badge, Fmt.qty(r.quantity))
+                vb.textBadge.text =
+                    ctx.getString(R.string.stock_in_badge, Fmt.qtyWithUnit(r.quantity, r.unit))
             } else {
                 vb.textBadge.setBackgroundResource(R.drawable.badge_out)
-                vb.textBadge.text = ctx.getString(R.string.stock_out_badge, Fmt.qty(r.quantity))
+                vb.textBadge.text =
+                    ctx.getString(R.string.stock_out_badge, Fmt.qtyWithUnit(r.quantity, r.unit))
             }
             vb.textItemName.text = r.itemName
             vb.textItemName.visibility = if (showItemName) View.VISIBLE else View.GONE
             vb.textTime.text = Fmt.time(r.createdAt)
             vb.textChange.text =
-                ctx.getString(R.string.stock_change, Fmt.qty(r.beforeQty), Fmt.qty(r.afterQty))
+                ctx.getString(
+                    R.string.stock_change,
+                    Fmt.qtyWithUnit(r.beforeQty, r.unit),
+                    Fmt.qtyWithUnit(r.afterQty, r.unit),
+                )
             vb.textNote.text = r.note
             vb.textNote.visibility = if (r.note.isEmpty()) View.GONE else View.VISIBLE
         }

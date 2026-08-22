@@ -15,6 +15,17 @@ class FmtTest {
     }
 
     @Test
+    fun qtyWithUnit_appendsUnit() {
+        assertEquals("12.5 米", Fmt.qtyWithUnit(12.5, "米"))
+        assertEquals("3 ㎡", Fmt.qtyWithUnit(3.0, "㎡"))
+    }
+
+    @Test
+    fun qtyWithUnit_emptyUnitFallsBackToPlainNumber() {
+        assertEquals("2.5", Fmt.qtyWithUnit(2.5, ""))
+    }
+
+    @Test
     fun computeAfter_in() {
         assertEquals(10.0, Fmt.computeAfter(4.0, 6.0, isIn = true), 1e-9)
     }

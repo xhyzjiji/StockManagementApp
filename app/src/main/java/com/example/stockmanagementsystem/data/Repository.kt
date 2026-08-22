@@ -117,7 +117,7 @@ class Repository private constructor(context: Context) {
     // ---------------- 物品 ----------------
 
     fun listItems(categoryId: Long): List<ItemSummary> = db.rawQuery(
-        """SELECT i.id, i.name, i.quantity,
+        """SELECT i.id, i.name, i.unit, i.quantity,
                   (SELECT group_concat(ad.name || ': ' || av.value, '  ')
                      FROM attribute_value av
                      JOIN attribute_def ad ON ad.id = av.attribute_def_id
@@ -137,9 +137,10 @@ class Repository private constructor(context: Context) {
                     ItemSummary(
                         id = c.getLong(0),
                         name = c.getString(1),
-                        quantity = c.getDouble(2),
-                        attrSummary = c.getString(3).orEmpty(),
-                        firstImage = c.getString(4).takeIf { !it.isNullOrEmpty() },
+                        unit = c.getString(2).orEmpty(),
+                        quantity = c.getDouble(3),
+                        attrSummary = c.getString(4).orEmpty(),
+                        firstImage = c.getString(5).takeIf { !it.isNullOrEmpty() },
                     )
                 )
             }
@@ -158,7 +159,7 @@ class Repository private constructor(context: Context) {
     }
 
     fun getItem(itemId: Long): Item? = db.rawQuery(
-        "SELECT id, category_id, name, quantity, created_at FROM item WHERE id=?",
+        "SELECT id, category_id, name, unit, quantity, created_at FROM item WHERE id=?",
         arrayOf(itemId.toString())
     ).use { c -> if (c.moveToFirst()) c.toItem() else null }
 
@@ -233,7 +234,13 @@ class Repository private constructor(context: Context) {
      * 保存物品：itemId 为 null 时新建。只写入属性值（属性定义由类目统一管理），
      * 暂存图转正入库，被移除/替换的图片文件同步清理。
      */
-    fun saveItem(itemId: Long?, categoryId: Long, name: String, values: List<AttrValueInput>): Long {
+    fun saveItem(
+        itemId: Long?,
+        categoryId: Long,
+        name: String,
+        unit: String,
+        values: List<AttrValueInput>,
+    ): Long {
         db.beginTransaction()
         try {
             val id = itemId ?: db.insertOrThrow(
@@ -241,13 +248,20 @@ class Repository private constructor(context: Context) {
                 ContentValues().apply {
                     put("category_id", categoryId)
                     put("name", name)
+                    put("unit", unit)
                     put("quantity", 0.0)
                     put("created_at", System.currentTimeMillis())
                 }
             )
             if (itemId != null) {
-                db.update("item", ContentValues().apply { put("name", name) }, "id=?",
-                    arrayOf(itemId.toString()))
+                db.update(
+                    "item",
+                    ContentValues().apply {
+                        put("name", name)
+                        put("unit", unit)
+                    },
+                    "id=?", arrayOf(itemId.toString())
+                )
             }
 
             val defTypes = listAttrDefs(categoryId).associate { it.id to it.type }
@@ -321,15 +335,15 @@ class Repository private constructor(context: Context) {
         db.beginTransaction()
         try {
             val row = db.rawQuery(
-                """SELECT i.name, i.quantity, c.warehouse_id
+                """SELECT i.name, i.unit, i.quantity, c.warehouse_id
                    FROM item i JOIN category c ON i.category_id = c.id
                    WHERE i.id=?""",
                 arrayOf(itemId.toString())
             ).use { c ->
                 if (!c.moveToFirst()) error("物品不存在")
-                Triple(c.getString(0), c.getDouble(1), c.getLong(2))
+                StockRow(c.getString(0), c.getString(1).orEmpty(), c.getDouble(2), c.getLong(3))
             }
-            val before = row.second
+            val before = row.quantity
             val after = if (type == StockType.IN) before + quantity else before - quantity
             if (type == StockType.OUT && after < 0.0) {
                 throw InsufficientStockException(before, quantity)
@@ -342,9 +356,10 @@ class Repository private constructor(context: Context) {
             val recordId = db.insertOrThrow(
                 "stock_record", null,
                 ContentValues().apply {
-                    put("warehouse_id", row.third)
+                    put("warehouse_id", row.warehouseId)
                     put("item_id", itemId)
-                    put("item_name", row.first)
+                    put("item_name", row.name)
+                    put("unit", row.unit)
                     put("type", type.wire)
                     put("quantity", quantity)
                     put("before_qty", before)
@@ -354,11 +369,18 @@ class Repository private constructor(context: Context) {
                 }
             )
             db.setTransactionSuccessful()
-            return StockRecord(recordId, row.third, itemId, row.first, type, quantity, before, after, note, now)
+            return StockRecord(recordId, row.warehouseId, itemId, row.name, row.unit, type, quantity, before, after, note, now)
         } finally {
             db.endTransaction()
         }
     }
+
+    private data class StockRow(
+        val name: String,
+        val unit: String,
+        val quantity: Double,
+        val warehouseId: Long,
+    )
 
     fun listRecordsForWarehouse(warehouseId: Long, limit: Int = 500): List<StockRecord> =
         db.rawQuery(
@@ -377,7 +399,8 @@ class Repository private constructor(context: Context) {
     private fun Cursor.toWarehouse() =
         Warehouse(getLong(0), getString(1), getString(2), getLong(3))
 
-    private fun Cursor.toItem() = Item(getLong(0), getLong(1), getString(2), getDouble(3), getLong(4))
+    private fun Cursor.toItem() =
+        Item(getLong(0), getLong(1), getString(2), getString(3).orEmpty(), getDouble(4), getLong(5))
 
     private fun Cursor.toAttrDef() = AttributeDef(
         id = getLong(0),
@@ -393,6 +416,7 @@ class Repository private constructor(context: Context) {
         warehouseId = getLong(getColumnIndexOrThrow("warehouse_id")),
         itemId = getLong(getColumnIndexOrThrow("item_id")),
         itemName = getString(getColumnIndexOrThrow("item_name")),
+        unit = getString(getColumnIndexOrThrow("unit")).orEmpty(),
         type = StockType.of(getString(getColumnIndexOrThrow("type"))),
         quantity = getDouble(getColumnIndexOrThrow("quantity")),
         beforeQty = getDouble(getColumnIndexOrThrow("before_qty")),

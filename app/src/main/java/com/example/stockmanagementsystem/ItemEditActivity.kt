@@ -100,27 +100,33 @@ class ItemEditActivity : AppCompatActivity(), AttrEditAdapter.Listener {
 
     private fun loadRows() {
         runInBackground({
-            val result: Pair<String, List<AttrRow>>? = if (itemId > 0) {
+            val result: Triple<String, String, List<AttrRow>>? = if (itemId > 0) {
                 val d = repo.getItemDetail(itemId)
                 if (d == null) null else {
                     categoryId = d.item.categoryId
-                    d.item.name to d.attrs.map { av ->
-                        AttrRow(
-                            defId = av.def.id,
-                            name = av.def.name,
-                            type = av.def.type,
-                            options = av.def.options,
-                            textValue = if (av.def.type == AttrType.TEXT || av.def.type == AttrType.NUMBER) av.value else "",
-                            choiceValue = if (av.def.type == AttrType.CHOICE) av.value else "",
-                            existingImage = if (av.def.type == AttrType.IMAGE) av.value else "",
-                        )
-                    }
+                    Triple(
+                        d.item.name, d.item.unit,
+                        d.attrs.map { av ->
+                            AttrRow(
+                                defId = av.def.id,
+                                name = av.def.name,
+                                type = av.def.type,
+                                options = av.def.options,
+                                textValue = if (av.def.type == AttrType.TEXT || av.def.type == AttrType.NUMBER) av.value else "",
+                                choiceValue = if (av.def.type == AttrType.CHOICE) av.value else "",
+                                existingImage = if (av.def.type == AttrType.IMAGE) av.value else "",
+                            )
+                        }
+                    )
                 }
             } else {
-                // 新建：按类目定义生成空值行
-                "" to repo.listAttrDefs(categoryId).map { def ->
-                    AttrRow(defId = def.id, name = def.name, type = def.type, options = def.options)
-                }
+                // 新建：按类目定义生成空值行，单位默认「件」，可改为米、㎡、公斤等
+                Triple(
+                    "", getString(R.string.item_unit_default),
+                    repo.listAttrDefs(categoryId).map { def ->
+                        AttrRow(defId = def.id, name = def.name, type = def.type, options = def.options)
+                    }
+                )
             }
             result
         }) { result ->
@@ -129,7 +135,8 @@ class ItemEditActivity : AppCompatActivity(), AttrEditAdapter.Listener {
                 return@runInBackground
             }
             vb.inputName.setText(result.first)
-            adapter.submit(result.second)
+            vb.inputUnit.setText(result.second)
+            adapter.submit(result.third)
         }
     }
 
@@ -160,7 +167,11 @@ class ItemEditActivity : AppCompatActivity(), AttrEditAdapter.Listener {
         }
         val values = adapter.toValueInputs()
         runInBackground({
-            repo.saveItem(if (itemId > 0) itemId else null, categoryId, name, values)
+            repo.saveItem(
+                if (itemId > 0) itemId else null, categoryId, name,
+                vb.inputUnit.text?.toString()?.trim().orEmpty(),
+                values,
+            )
         }) {
             Toast.makeText(this, R.string.save_success, Toast.LENGTH_SHORT).show()
             finish()
