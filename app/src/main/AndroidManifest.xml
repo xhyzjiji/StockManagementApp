@@ -44,6 +44,9 @@
         <activity
             android:name=".RecordListActivity"
             android:exported="false" />
+        <activity
+            android:name=".ItemRecordListActivity"
+            android:exported="false" />
 
         <!-- 向系统相机暴露应用私有目录，用于拍照回写 -->
         <provider

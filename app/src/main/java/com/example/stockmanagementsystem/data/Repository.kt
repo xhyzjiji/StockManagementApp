@@ -117,12 +117,17 @@ class Repository private constructor(context: Context) {
     // ---------------- 物品 ----------------
 
     fun listItems(categoryId: Long): List<ItemSummary> = db.rawQuery(
-        """SELECT i.id, i.name, i.unit, i.quantity,
+        """SELECT i.id, i.name, i.unit, i.quantity, i.created_at,
                   (SELECT group_concat(ad.name || ': ' || av.value, '  ')
                      FROM attribute_value av
                      JOIN attribute_def ad ON ad.id = av.attribute_def_id
-                    WHERE av.item_id = i.id AND ad.type != 'IMAGE' AND av.value <> ''
+                    WHERE av.item_id = i.id AND ad.type NOT IN ('IMAGE','TAGS') AND av.value <> ''
                     ORDER BY ad.sort_order) AS summary,
+                  (SELECT group_concat(av3.value, '|')
+                     FROM attribute_value av3
+                     JOIN attribute_def ad3 ON ad3.id = av3.attribute_def_id
+                    WHERE av3.item_id = i.id AND ad3.type = 'TAGS' AND av3.value <> ''
+                    ORDER BY ad3.sort_order) AS tags,
                   (SELECT av2.value
                      FROM attribute_value av2
                      JOIN attribute_def ad2 ON ad2.id = av2.attribute_def_id
@@ -139,8 +144,10 @@ class Repository private constructor(context: Context) {
                         name = c.getString(1),
                         unit = c.getString(2).orEmpty(),
                         quantity = c.getDouble(3),
-                        attrSummary = c.getString(4).orEmpty(),
-                        firstImage = c.getString(5).takeIf { !it.isNullOrEmpty() },
+                        createdAt = c.getLong(4),
+                        attrSummary = c.getString(5).orEmpty(),
+                        tags = AttrOptions.decode(c.getString(6).orEmpty()),
+                        firstImage = c.getString(7).takeIf { !it.isNullOrEmpty() },
                     )
                 )
             }
@@ -268,7 +275,7 @@ class Repository private constructor(context: Context) {
             values.forEach { v ->
                 when (defTypes[v.defId]) {
                     AttrType.IMAGE -> saveImageValue(id, v)
-                    AttrType.TEXT, AttrType.NUMBER, AttrType.CHOICE -> {
+                    AttrType.TEXT, AttrType.NUMBER, AttrType.CHOICE, AttrType.TAGS -> {
                         val s = v.value.trim()
                         if (s.isEmpty()) deleteValue(v.defId, id) else upsertValue(v.defId, id, s)
                     }
@@ -393,6 +400,18 @@ class Repository private constructor(context: Context) {
             "SELECT * FROM stock_record WHERE item_id=? ORDER BY id DESC LIMIT ?",
             arrayOf(itemId.toString(), limit.toString())
         ).use { c -> buildList { while (c.moveToNext()) add(c.toRecord()) } }
+
+    /** 分页查询某物品流水（新→旧） */
+    fun listRecordsForItemPaged(itemId: Long, offset: Int, limit: Int): List<StockRecord> =
+        db.rawQuery(
+            "SELECT * FROM stock_record WHERE item_id=? ORDER BY id DESC LIMIT ? OFFSET ?",
+            arrayOf(itemId.toString(), limit.toString(), offset.toString())
+        ).use { c -> buildList { while (c.moveToNext()) add(c.toRecord()) } }
+
+    fun countRecordsForItem(itemId: Long): Long = db.rawQuery(
+        "SELECT COUNT(*) FROM stock_record WHERE item_id=?",
+        arrayOf(itemId.toString())
+    ).use { c -> if (c.moveToFirst()) c.getLong(0) else 0L }
 
     // ---------------- 游标映射 ----------------
 

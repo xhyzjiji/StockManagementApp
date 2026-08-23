@@ -41,6 +41,7 @@
     <string name="item_unit_hint">计量单位（如：件、米、㎡、公斤）</string>
     <string name="item_unit_default">件</string>
     <string name="item_stock_qty">库存 %1$s</string>
+    <string name="item_search_hint">搜索名称、标签、属性</string>
     <string name="item_delete_confirm">删除物品 "%1$s"？其参考图将一并删除。</string>
 
     <!-- 属性 -->
@@ -57,9 +58,13 @@
     <string name="attr_type_text">文本</string>
     <string name="attr_type_number">数字</string>
     <string name="attr_type_choice">单选</string>
+    <string name="attr_type_tags">标签</string>
     <string name="attr_type_image">图片</string>
+    <string name="attr_type_change_warning">属性 "%1$s" 的类型将从「%2$s」改为「%3$s」，所有物品已填写的内容（含图片）将被清除，确定切换？</string>
     <string name="attr_options_hint">选项，用逗号分隔（如：有糖,无糖）</string>
     <string name="attr_options_required">单选类型至少需要两个选项</string>
+    <string name="attr_tags_hint">候选标签，用逗号分隔（如：棉布,蓝色,条纹）</string>
+    <string name="attr_tags_required">标签至少需要一个候选值</string>
     <string name="attr_value_hint">属性值</string>
     <string name="attr_number_hint">数字</string>
     <string name="attr_photo_take">拍照</string>
@@ -87,5 +92,6 @@
     <string name="record_title">出入库记录</string>
     <string name="record_empty">暂无出入库记录</string>
     <string name="record_history_title">最近出入库</string>
+    <string name="record_view_all">查看全部（共 %1$d 条）</string>
     <string name="record_item_deleted">物品已删除</string>
 </resources>

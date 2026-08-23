@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
@@ -19,41 +20,50 @@
             android:inputType="text" />
     </com.google.android.material.textfield.TextInputLayout>
 
-    <RadioGroup
-        android:id="@+id/radioType"
+    <com.google.android.material.chip.ChipGroup
+        android:id="@+id/chipGroupType"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
-        android:orientation="horizontal">
+        app:chipSpacingHorizontal="8dp"
+        app:selectionRequired="true"
+        app:singleSelection="true">
 
-        <RadioButton
-            android:id="@+id/radioText"
+        <com.google.android.material.chip.Chip
+            android:id="@+id/chipText"
+            style="@style/Widget.Material3.Chip.Filter"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:checked="true"
             android:text="@string/attr_type_text" />
 
-        <RadioButton
-            android:id="@+id/radioNumber"
+        <com.google.android.material.chip.Chip
+            android:id="@+id/chipNumber"
+            style="@style/Widget.Material3.Chip.Filter"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
             android:text="@string/attr_type_number" />
 
-        <RadioButton
-            android:id="@+id/radioChoice"
+        <com.google.android.material.chip.Chip
+            android:id="@+id/chipChoice"
+            style="@style/Widget.Material3.Chip.Filter"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
             android:text="@string/attr_type_choice" />
 
-        <RadioButton
-            android:id="@+id/radioImage"
+        <com.google.android.material.chip.Chip
+            android:id="@+id/chipTags"
+            style="@style/Widget.Material3.Chip.Filter"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
+            android:text="@string/attr_type_tags" />
+
+        <com.google.android.material.chip.Chip
+            android:id="@+id/chipImage"
+            style="@style/Widget.Material3.Chip.Filter"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
             android:text="@string/attr_type_image" />
-    </RadioGroup>
+    </com.google.android.material.chip.ChipGroup>
 
     <com.google.android.material.textfield.TextInputLayout
         android:id="@+id/layoutOptions"

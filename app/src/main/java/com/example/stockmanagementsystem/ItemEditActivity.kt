@@ -10,6 +10,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.FileProvider
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.stockmanagementsystem.data.AttrType
+import com.example.stockmanagementsystem.data.AttrOptions
 import com.example.stockmanagementsystem.data.Repository
 import com.example.stockmanagementsystem.databinding.ActivityItemEditBinding
 import com.example.stockmanagementsystem.ui.AttrEditAdapter
@@ -114,6 +115,7 @@ class ItemEditActivity : AppCompatActivity(), AttrEditAdapter.Listener {
                                 options = av.def.options,
                                 textValue = if (av.def.type == AttrType.TEXT || av.def.type == AttrType.NUMBER) av.value else "",
                                 choiceValue = if (av.def.type == AttrType.CHOICE) av.value else "",
+                                tagsValue = if (av.def.type == AttrType.TAGS) AttrOptions.decode(av.value).toMutableSet() else mutableSetOf(),
                                 existingImage = if (av.def.type == AttrType.IMAGE) av.value else "",
                             )
                         }

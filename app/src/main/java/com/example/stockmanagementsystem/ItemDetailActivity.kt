@@ -3,9 +3,15 @@ package com.example.stockmanagementsystem
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import android.view.LayoutInflater
+import android.view.View
+import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.example.stockmanagementsystem.data.AttrOptions
+import com.example.stockmanagementsystem.data.AttrType
+import com.example.stockmanagementsystem.data.AttrWithValue
 import com.example.stockmanagementsystem.data.InsufficientStockException
 import com.example.stockmanagementsystem.data.ItemDetail
 import com.example.stockmanagementsystem.data.Repository
@@ -14,6 +20,7 @@ import com.example.stockmanagementsystem.databinding.ActivityItemDetailBinding
 import com.example.stockmanagementsystem.ui.AttrViewAdapter
 import com.example.stockmanagementsystem.ui.Dialogs
 import com.example.stockmanagementsystem.ui.RecordAdapter
+import com.example.stockmanagementsystem.util.Bitmaps
 import com.example.stockmanagementsystem.util.Bg
 import com.example.stockmanagementsystem.util.Insets
 import com.example.stockmanagementsystem.util.Fmt
@@ -35,6 +42,17 @@ class ItemDetailActivity : AppCompatActivity() {
         setContentView(vb.root)
         Insets.apply(this)
         vb.toolbar.setNavigationOnClickListener { finish() }
+        vb.toolbar.setOnMenuItemClickListener { item ->
+            when (item.itemId) {
+                R.id.action_edit -> {
+                    detail?.let {
+                        startActivity(ItemEditActivity.editIntent(this, itemId, it.item.categoryId))
+                    }
+                    true
+                }
+                else -> false
+            }
+        }
 
         itemId = intent.getLongExtra(EXTRA_ITEM_ID, -1)
         if (itemId <= 0) {
@@ -62,7 +80,13 @@ class ItemDetailActivity : AppCompatActivity() {
     }
 
     private fun reload() {
-        runInBackground({ repo.getItemDetail(itemId) to repo.listRecordsForItem(itemId) }) { (d, records) ->
+        runInBackground({
+            Triple(
+                repo.getItemDetail(itemId),
+                repo.listRecordsForItemPaged(itemId, offset = 0, limit = RECENT_LIMIT),
+                repo.countRecordsForItem(itemId),
+            )
+        }) { (d, records, total) ->
             if (d == null) {
                 finish()
                 return@runInBackground
@@ -70,9 +94,52 @@ class ItemDetailActivity : AppCompatActivity() {
             detail = d
             vb.toolbar.title = d.item.name
             vb.textQty.text = Fmt.qtyWithUnit(d.item.quantity, d.item.unit)
-            attrAdapter.submit(d.attrs)
+            bindHeroAndTags(d)
+            attrAdapter.submit(listContentOf(d))
             recordAdapter.submit(records)
+            if (total > records.size) {
+                vb.btnAllRecords.visibility = View.VISIBLE
+                vb.btnAllRecords.text = getString(R.string.record_view_all, total)
+                vb.btnAllRecords.setOnClickListener {
+                    startActivity(ItemRecordListActivity.intent(this, itemId, d.item.name))
+                }
+            } else {
+                vb.btnAllRecords.visibility = View.GONE
+            }
         }
+    }
+
+    /** 首个有值的图片属性提升为顶部大图；所有标签属性值合并为图片下方的 pills */
+    private fun bindHeroAndTags(d: ItemDetail) {
+        val heroAttr = d.attrs.firstOrNull { it.def.type == AttrType.IMAGE && it.value.isNotEmpty() }
+        if (heroAttr != null) {
+            vb.imageHero.visibility = View.VISIBLE
+            Bitmaps.loadInto(vb.imageHero, repo.imageStore.fileOf(heroAttr.value), 720)
+            vb.imageHero.setOnClickListener {
+                Dialogs.imagePreview(this, repo.imageStore.fileOf(heroAttr.value))
+            }
+        } else {
+            vb.imageHero.visibility = View.GONE
+        }
+
+        val tags = LinkedHashSet<String>().apply {
+            d.attrs.filter { it.def.type == AttrType.TAGS }.forEach { addAll(AttrOptions.decode(it.value)) }
+        }
+        vb.layoutTags.removeAllViews()
+        tags.forEach { tag ->
+            val chip = LayoutInflater.from(this)
+                .inflate(R.layout.item_tag_chip, vb.layoutTags, false) as TextView
+            chip.text = tag
+            vb.layoutTags.addView(chip)
+        }
+        vb.scrollTags.visibility = if (tags.isEmpty()) View.GONE else View.VISIBLE
+    }
+
+    /** 属性列表内容：去掉已提升为大图的图片属性与标签属性（都以 pills 展示） */
+    private fun listContentOf(d: ItemDetail): List<AttrWithValue> {
+        val heroDefId = d.attrs
+            .firstOrNull { it.def.type == AttrType.IMAGE && it.value.isNotEmpty() }?.def?.id
+        return d.attrs.filter { it.def.type != AttrType.TAGS && it.def.id != heroDefId }
     }
 
     private fun showStockDialog(isIn: Boolean) {
@@ -111,6 +178,7 @@ class ItemDetailActivity : AppCompatActivity() {
 
     companion object {
         const val EXTRA_ITEM_ID = "extra_item_id"
+        private const val RECENT_LIMIT = 5
 
         fun intent(context: Context, itemId: Long): Intent =
             Intent(context, ItemDetailActivity::class.java).putExtra(EXTRA_ITEM_ID, itemId)

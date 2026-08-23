@@ -2,11 +2,12 @@ package com.example.stockmanagementsystem.data
 
 import java.io.File
 
-/** 属性类型：文本 / 数字 / 单选 / 参考图 */
+/** 属性类型：文本 / 数字 / 单选 / 多选标签 / 参考图 */
 enum class AttrType(val wire: String) {
     TEXT("TEXT"),
     NUMBER("NUMBER"),
     CHOICE("CHOICE"),
+    TAGS("TAGS"),
     IMAGE("IMAGE");
 
     companion object {
@@ -53,8 +54,11 @@ data class ItemSummary(
     val name: String,
     val unit: String,
     val quantity: Double,
+    /** 标签（TAGS 类型属性的多选值，已拆好） */
+    val tags: List<String>,
     val attrSummary: String,
     val firstImage: String?,
+    val createdAt: Long,
 )
 
 /** 属性定义，归属于某个类目（类目级自定义属性，类目下所有物品共用） */

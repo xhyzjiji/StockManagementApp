@@ -7,11 +7,13 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.RadioButton
 import androidx.recyclerview.widget.RecyclerView
+import com.example.stockmanagementsystem.data.AttrOptions
 import com.example.stockmanagementsystem.data.AttrType
 import com.example.stockmanagementsystem.data.AttrValueInput
 import com.example.stockmanagementsystem.data.ImageStore
 import com.example.stockmanagementsystem.databinding.ItemAttrEditBinding
 import com.example.stockmanagementsystem.util.Bitmaps
+import com.google.android.material.chip.Chip
 import java.io.File
 
 /** 物品编辑页一行的值编辑状态（属性定义由类目统一管理，此处只填值） */
@@ -22,6 +24,8 @@ data class AttrRow(
     val options: List<String> = emptyList(),
     var textValue: String = "",
     var choiceValue: String = "",
+    /** TAGS 类型的多选值（已选中的候选标签） */
+    val tagsValue: MutableSet<String> = mutableSetOf(),
     var existingImage: String = "",
     var stagedImage: File? = null,
     var removeImage: Boolean = false,
@@ -53,7 +57,12 @@ class AttrEditAdapter(
     fun toValueInputs(): List<AttrValueInput> = rows.map { r ->
         AttrValueInput(
             defId = r.defId,
-            value = if (r.type == AttrType.CHOICE) r.choiceValue else r.textValue,
+            value = when (r.type) {
+                AttrType.CHOICE -> r.choiceValue
+                // 按候选顺序编码，保证存储/展示稳定
+                AttrType.TAGS -> AttrOptions.encode(r.options.filter { it in r.tagsValue })
+                else -> r.textValue
+            },
             stagedImage = r.stagedImage,
             removeImage = r.removeImage,
         )
@@ -78,12 +87,14 @@ class AttrEditAdapter(
             vb.layoutText.visibility = if (row.type == AttrType.TEXT) View.VISIBLE else View.GONE
             vb.layoutNumber.visibility = if (row.type == AttrType.NUMBER) View.VISIBLE else View.GONE
             vb.choiceGroup.visibility = if (row.type == AttrType.CHOICE) View.VISIBLE else View.GONE
+            vb.tagsGroup.visibility = if (row.type == AttrType.TAGS) View.VISIBLE else View.GONE
             vb.layoutImage.visibility = if (row.type == AttrType.IMAGE) View.VISIBLE else View.GONE
 
             when (row.type) {
                 AttrType.TEXT -> bindText(row, vb.inputText, isNumber = false)
                 AttrType.NUMBER -> bindText(row, vb.inputNumber, isNumber = true)
                 AttrType.CHOICE -> bindChoice(row)
+                AttrType.TAGS -> bindTags(row)
                 AttrType.IMAGE -> bindImage(row)
             }
         }
@@ -122,6 +133,22 @@ class AttrEditAdapter(
             group.setOnCheckedChangeListener { g, checkedId ->
                 val rb = g.findViewById<RadioButton>(checkedId)
                 row.choiceValue = rb?.tag as? String ?: ""
+            }
+        }
+
+        private fun bindTags(row: AttrRow) {
+            val group = vb.tagsGroup
+            group.removeAllViews()
+            row.options.forEach { opt ->
+                val chip = Chip(group.context).apply {
+                    text = opt
+                    isCheckable = true
+                    isChecked = opt in row.tagsValue
+                }
+                chip.setOnCheckedChangeListener { _, checked ->
+                    if (checked) row.tagsValue.add(opt) else row.tagsValue.remove(opt)
+                }
+                group.addView(chip)
             }
         }
 

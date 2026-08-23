@@ -63,6 +63,7 @@ class AttrDefAdapter(
                 AttrType.TEXT -> ctx.getString(R.string.attr_type_text)
                 AttrType.NUMBER -> ctx.getString(R.string.attr_type_number)
                 AttrType.CHOICE -> ctx.getString(R.string.attr_type_choice)
+                AttrType.TAGS -> ctx.getString(R.string.attr_type_tags)
                 AttrType.IMAGE -> ctx.getString(R.string.attr_type_image)
             }
             vb.textOptions.text = row.options.joinToString(" / ")

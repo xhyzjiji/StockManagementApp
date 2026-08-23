@@ -10,5 +10,6 @@
     <color name="text_secondary">#757575</color>
     <color name="divider">#E0E0E0</color>
     <color name="badge_bg">#E3F2FD</color>
+    <color name="tag_bg">#F1F3F5</color>
     <color name="image_placeholder">#EEEEEE</color>
 </resources>

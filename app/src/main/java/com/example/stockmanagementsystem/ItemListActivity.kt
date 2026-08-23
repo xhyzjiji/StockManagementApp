@@ -3,12 +3,15 @@ package com.example.stockmanagementsystem
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import android.text.Editable
+import android.text.TextWatcher
 import android.view.View
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
-import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.GridLayoutManager
 import com.example.stockmanagementsystem.data.Repository
+import com.example.stockmanagementsystem.data.ItemSummary
 import com.example.stockmanagementsystem.util.Insets
 import com.example.stockmanagementsystem.databinding.ActivityItemListBinding
 import com.example.stockmanagementsystem.ui.Dialogs
@@ -21,6 +24,7 @@ class ItemListActivity : AppCompatActivity() {
     private val repo by lazy { Repository.get(this) }
     private lateinit var adapter: ItemAdapter
     private var categoryId: Long = -1
+    private var allItems: List<ItemSummary> = emptyList()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -51,8 +55,14 @@ class ItemListActivity : AppCompatActivity() {
             onClick = { item -> startActivity(ItemDetailActivity.intent(this, item.id)) },
             onLongClick = { item -> showItemOps(item.id, item.name) },
         )
-        vb.recycler.layoutManager = LinearLayoutManager(this)
+        vb.recycler.layoutManager = GridLayoutManager(this, 2)
         vb.recycler.adapter = adapter
+
+        vb.inputSearch.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) = Unit
+            override fun afterTextChanged(s: Editable?) = applyFilter()
+        })
 
         vb.fabAdd.setOnClickListener {
             startActivity(ItemEditActivity.createIntent(this, categoryId))
@@ -66,9 +76,21 @@ class ItemListActivity : AppCompatActivity() {
 
     private fun reload() {
         runInBackground({ repo.listItems(categoryId) }) { list ->
-            adapter.submit(list)
-            vb.textEmpty.visibility = if (list.isEmpty()) View.VISIBLE else View.GONE
+            allItems = list
+            applyFilter()
         }
+    }
+
+    /** 按名称/标签/属性摘要本地过滤 */
+    private fun applyFilter() {
+        val q = vb.inputSearch.text?.toString()?.trim().orEmpty()
+        val filtered = if (q.isEmpty()) allItems else allItems.filter { item ->
+            item.name.contains(q, ignoreCase = true) ||
+                item.attrSummary.contains(q, ignoreCase = true) ||
+                item.tags.any { it.contains(q, ignoreCase = true) }
+        }
+        adapter.submit(filtered)
+        vb.textEmpty.visibility = if (filtered.isEmpty()) View.VISIBLE else View.GONE
     }
 
     private fun showItemOps(itemId: Long, name: String) {

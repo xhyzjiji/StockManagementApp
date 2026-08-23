@@ -8,6 +8,7 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.stockmanagementsystem.data.AttrDefDraft
+import com.example.stockmanagementsystem.data.AttrType
 import com.example.stockmanagementsystem.data.Repository
 import com.example.stockmanagementsystem.databinding.ActivityCategoryAttrsBinding
 import com.example.stockmanagementsystem.ui.AttrDefAdapter
@@ -73,12 +74,34 @@ class CategoryAttrsActivity : AppCompatActivity() {
                 Toast.makeText(this, R.string.attr_name_duplicate, Toast.LENGTH_SHORT).show()
                 return@attrDef
             }
-            row.name = name
-            row.type = type
-            row.options = options
-            adapter.refreshRow(row)
+            fun apply() {
+                row.name = name
+                row.type = type
+                row.options = options
+                adapter.refreshRow(row)
+            }
+            if (type != row.type) {
+                // 类型切换会在保存时清空该类目下所有物品的已有值，先确认
+                Dialogs.confirm(
+                    this,
+                    getString(R.string.attr_type_change_warning, row.name, typeLabel(row.type), typeLabel(type))
+                ) { apply() }
+            } else {
+                apply()
+            }
         }
     }
+
+    private fun typeLabel(type: AttrType): String =
+        getString(
+            when (type) {
+                AttrType.TEXT -> R.string.attr_type_text
+                AttrType.NUMBER -> R.string.attr_type_number
+                AttrType.CHOICE -> R.string.attr_type_choice
+                AttrType.TAGS -> R.string.attr_type_tags
+                AttrType.IMAGE -> R.string.attr_type_image
+            }
+        )
 
     private fun syncEmpty() {
         vb.textEmpty.visibility = if (adapter.rows.isEmpty()) View.VISIBLE else View.GONE

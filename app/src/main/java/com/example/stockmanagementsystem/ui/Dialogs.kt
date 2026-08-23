@@ -94,18 +94,28 @@ object Dialogs {
         val vb = DialogAttrDefBinding.inflate(LayoutInflater.from(context))
         vb.inputName.setText(initialName)
         vb.inputOptions.setText(initialOptions.joinToString(","))
-        when (initialType) {
-            AttrType.TEXT -> vb.radioText.isChecked = true
-            AttrType.NUMBER -> vb.radioNumber.isChecked = true
-            AttrType.CHOICE -> vb.radioChoice.isChecked = true
-            AttrType.IMAGE -> vb.radioImage.isChecked = true
-        }
         fun syncOptionsVisibility(checkedId: Int) {
-            vb.layoutOptions.visibility =
-                if (checkedId == R.id.radioChoice) View.VISIBLE else View.GONE
+            vb.layoutOptions.visibility = when (checkedId) {
+                R.id.chipChoice, R.id.chipTags -> View.VISIBLE
+                else -> View.GONE
+            }
+            vb.layoutOptions.hint = context.getString(
+                if (checkedId == R.id.chipTags) R.string.attr_tags_hint else R.string.attr_options_hint
+            )
         }
-        syncOptionsVisibility(vb.radioType.checkedRadioButtonId)
-        vb.radioType.setOnCheckedChangeListener { _, checkedId -> syncOptionsVisibility(checkedId) }
+        vb.chipGroupType.check(
+            when (initialType) {
+                AttrType.NUMBER -> R.id.chipNumber
+                AttrType.CHOICE -> R.id.chipChoice
+                AttrType.TAGS -> R.id.chipTags
+                AttrType.IMAGE -> R.id.chipImage
+                AttrType.TEXT -> R.id.chipText
+            }
+        )
+        syncOptionsVisibility(vb.chipGroupType.checkedChipId)
+        vb.chipGroupType.setOnCheckedStateChangeListener { _, checkedIds ->
+            syncOptionsVisibility(checkedIds.firstOrNull() ?: View.NO_ID)
+        }
 
         val dialog = MaterialAlertDialogBuilder(context)
             .setTitle(title)
@@ -119,15 +129,20 @@ object Dialogs {
                 vb.layoutName.error = context.getString(R.string.attr_name_required)
                 return@setOnClickListener
             }
-            val type = when (vb.radioType.checkedRadioButtonId) {
-                R.id.radioNumber -> AttrType.NUMBER
-                R.id.radioChoice -> AttrType.CHOICE
-                R.id.radioImage -> AttrType.IMAGE
+            val type = when (vb.chipGroupType.checkedChipId) {
+                R.id.chipNumber -> AttrType.NUMBER
+                R.id.chipChoice -> AttrType.CHOICE
+                R.id.chipTags -> AttrType.TAGS
+                R.id.chipImage -> AttrType.IMAGE
                 else -> AttrType.TEXT
             }
             val options = AttrOptions.parseUserInput(vb.inputOptions.text?.toString().orEmpty())
             if (type == AttrType.CHOICE && options.size < 2) {
                 vb.layoutOptions.error = context.getString(R.string.attr_options_required)
+                return@setOnClickListener
+            }
+            if (type == AttrType.TAGS && options.isEmpty()) {
+                vb.layoutOptions.error = context.getString(R.string.attr_tags_required)
                 return@setOnClickListener
             }
             dialog.dismiss()
