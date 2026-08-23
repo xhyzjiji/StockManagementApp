@@ -6,6 +6,7 @@ import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
 import android.view.View
+import android.widget.PopupMenu
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
@@ -25,6 +26,8 @@ class ItemListActivity : AppCompatActivity() {
     private lateinit var adapter: ItemAdapter
     private var categoryId: Long = -1
     private var allItems: List<ItemSummary> = emptyList()
+    /** false=按名称过滤；true=按标签过滤 */
+    private var searchByTag = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -58,6 +61,7 @@ class ItemListActivity : AppCompatActivity() {
         vb.recycler.layoutManager = GridLayoutManager(this, 2)
         vb.recycler.adapter = adapter
 
+        vb.btnSearchMode.setOnClickListener { showSearchModeMenu() }
         vb.inputSearch.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) = Unit
@@ -81,16 +85,37 @@ class ItemListActivity : AppCompatActivity() {
         }
     }
 
-    /** 按名称/标签/属性摘要本地过滤 */
+    /** 按所选维度（名称或标签）本地过滤 */
     private fun applyFilter() {
         val q = vb.inputSearch.text?.toString()?.trim().orEmpty()
         val filtered = if (q.isEmpty()) allItems else allItems.filter { item ->
-            item.name.contains(q, ignoreCase = true) ||
-                item.attrSummary.contains(q, ignoreCase = true) ||
+            if (searchByTag) {
                 item.tags.any { it.contains(q, ignoreCase = true) }
+            } else {
+                item.name.contains(q, ignoreCase = true)
+            }
         }
         adapter.submit(filtered)
         vb.textEmpty.visibility = if (filtered.isEmpty()) View.VISIBLE else View.GONE
+    }
+
+    private fun showSearchModeMenu() {
+        val byName = getString(R.string.search_mode_by_name)
+        val byTag = getString(R.string.search_mode_by_tag)
+        PopupMenu(this, vb.btnSearchMode).apply {
+            menu.add(byName)
+            menu.add(byTag)
+            setOnMenuItemClickListener { mi ->
+                searchByTag = mi.title == byTag
+                vb.btnSearchMode.text = mi.title
+                vb.layoutSearch.hint = getString(
+                    if (searchByTag) R.string.item_search_hint_tag else R.string.item_search_hint_name
+                )
+                applyFilter()
+                true
+            }
+            show()
+        }
     }
 
     private fun showItemOps(itemId: Long, name: String) {

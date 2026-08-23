@@ -23,22 +23,47 @@
             app:popupTheme="@style/ThemeOverlay.Material3.Light"
             app:titleTextColor="@color/white" />
 
-        <com.google.android.material.textfield.TextInputLayout
-            android:id="@+id/layoutSearch"
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginHorizontal="16dp"
             android:layout_marginTop="8dp"
-            android:hint="@string/item_search_hint"
-            app:startIconDrawable="@android:drawable/ic_menu_search">
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
 
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/inputSearch"
-                android:layout_width="match_parent"
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnSearchMode"
+                style="@style/Widget.Material3.Button.OutlinedButton"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:imeOptions="actionSearch"
-                android:inputType="text" />
-        </com.google.android.material.textfield.TextInputLayout>
+                android:insetTop="6dp"
+                android:insetBottom="6dp"
+                android:minWidth="0dp"
+                android:paddingHorizontal="12dp"
+                android:text="@string/search_mode_by_name"
+                android:textSize="13sp"
+                app:icon="@drawable/ic_arrow_drop_down"
+                app:iconGravity="end"
+                app:iconPadding="0dp"
+                app:iconSize="18dp" />
+
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/layoutSearch"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:layout_weight="1"
+                android:hint="@string/item_search_hint_name"
+                app:startIconDrawable="@android:drawable/ic_menu_search">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/inputSearch"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:imeOptions="actionSearch"
+                    android:inputType="text" />
+            </com.google.android.material.textfield.TextInputLayout>
+        </LinearLayout>
 
         <FrameLayout
             android:layout_width="match_parent"
