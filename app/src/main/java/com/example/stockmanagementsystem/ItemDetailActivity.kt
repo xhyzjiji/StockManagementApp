@@ -24,6 +24,7 @@ import com.example.stockmanagementsystem.util.Bitmaps
 import com.example.stockmanagementsystem.util.Bg
 import com.example.stockmanagementsystem.util.Insets
 import com.example.stockmanagementsystem.util.Fmt
+import com.example.stockmanagementsystem.util.TagColors
 import com.example.stockmanagementsystem.util.runInBackground
 
 /** 物品详情：属性展示（含参考图）、库存数字、入库/出库入口、该物品流水 */
@@ -130,6 +131,7 @@ class ItemDetailActivity : AppCompatActivity() {
             val chip = LayoutInflater.from(this)
                 .inflate(R.layout.item_tag_chip, vb.layoutTags, false) as TextView
             chip.text = tag
+            TagColors.applyStyle(chip, tag)
             vb.layoutTags.addView(chip)
         }
         vb.scrollTags.visibility = if (tags.isEmpty()) View.GONE else View.VISIBLE

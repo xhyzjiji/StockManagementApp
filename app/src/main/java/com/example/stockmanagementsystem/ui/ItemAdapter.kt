@@ -10,6 +10,7 @@ import com.example.stockmanagementsystem.data.ItemSummary
 import com.example.stockmanagementsystem.databinding.ItemItemBinding
 import com.example.stockmanagementsystem.util.Bitmaps
 import com.example.stockmanagementsystem.util.Fmt
+import com.example.stockmanagementsystem.util.TagColors
 
 /** 物品网格卡片：大图 + 名称 + 标签 chips + 数量·摘要 + 日期 */
 class ItemAdapter(
@@ -43,6 +44,7 @@ class ItemAdapter(
                 val chip = LayoutInflater.from(vb.layoutTags.context)
                     .inflate(R.layout.item_tag_chip, vb.layoutTags, false) as TextView
                 chip.text = tag
+                TagColors.applyStyle(chip, tag)
                 vb.layoutTags.addView(chip)
             }
 
