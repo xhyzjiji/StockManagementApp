@@ -31,6 +31,14 @@ data class Warehouse(
     val createdAt: Long,
 )
 
+/** 回收站行：仓库或物品 */
+data class DeletedRow(
+    val id: Long,
+    val title: String,
+    val subtitle: String,
+    val deletedAt: Long,
+)
+
 data class Category(
     val id: Long,
     val warehouseId: Long,

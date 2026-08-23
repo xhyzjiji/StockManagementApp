@@ -4,6 +4,7 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -36,6 +37,15 @@ class WarehouseFragment : Fragment() {
         binding.recycler.layoutManager = LinearLayoutManager(requireContext())
         binding.recycler.adapter = adapter
         binding.fabAdd.setOnClickListener { showCreateDialog() }
+        binding.toolbar.setOnMenuItemClickListener { item ->
+            when (item.itemId) {
+                R.id.action_recycle_bin -> {
+                    startActivity(RecycleBinActivity.warehouseBinIntent(requireContext()))
+                    true
+                }
+                else -> false
+            }
+        }
 
         // 清理上次编辑未保存遗留的暂存图片
         Bg.run { repo.imageStore.cleanTmp() }
@@ -75,7 +85,10 @@ class WarehouseFragment : Fragment() {
                         }
                     }
                     1 -> Dialogs.confirm(ctx, getString(R.string.warehouse_delete_confirm, name)) {
-                        runInBackground({ repo.deleteWarehouse(id); Unit }) { reload() }
+                        runInBackground({ repo.softDeleteWarehouse(id) }) {
+                            Toast.makeText(ctx, R.string.moved_to_bin, Toast.LENGTH_SHORT).show()
+                            reload()
+                        }
                     }
                 }
             }

@@ -18,7 +18,8 @@ class DbHelper(context: Context) : SQLiteOpenHelper(context, DB_NAME, null, DB_V
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 name TEXT NOT NULL,
                 remark TEXT NOT NULL DEFAULT '',
-                created_at INTEGER NOT NULL
+                created_at INTEGER NOT NULL,
+                deleted_at INTEGER
             )
             """.trimIndent()
         )
@@ -40,7 +41,8 @@ class DbHelper(context: Context) : SQLiteOpenHelper(context, DB_NAME, null, DB_V
                 name TEXT NOT NULL,
                 unit TEXT NOT NULL DEFAULT '',
                 quantity REAL NOT NULL DEFAULT 0,
-                created_at INTEGER NOT NULL
+                created_at INTEGER NOT NULL,
+                deleted_at INTEGER
             )
             """.trimIndent()
         )
@@ -104,6 +106,6 @@ class DbHelper(context: Context) : SQLiteOpenHelper(context, DB_NAME, null, DB_V
 
     companion object {
         const val DB_NAME = "stock.db"
-        const val DB_VERSION = 6
+        const val DB_VERSION = 7
     }
 }

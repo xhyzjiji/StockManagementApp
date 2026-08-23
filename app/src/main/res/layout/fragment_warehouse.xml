@@ -16,6 +16,7 @@
             android:background="@color/primary"
             android:elevation="4dp"
             android:theme="@style/ThemeOverlay.Material3.Dark.ActionBar"
+            app:menu="@menu/menu_warehouse"
             app:title="@string/nav_warehouse"
             app:titleTextColor="@color/white" />
 

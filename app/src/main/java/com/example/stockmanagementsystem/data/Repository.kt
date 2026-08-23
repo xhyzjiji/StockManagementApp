@@ -27,11 +27,12 @@ class Repository private constructor(context: Context) {
     // ---------------- 仓库 ----------------
 
     fun listWarehouses(): List<Warehouse> = db.rawQuery(
-        "SELECT id, name, remark, created_at FROM warehouse ORDER BY id", null
+        "SELECT id, name, remark, created_at FROM warehouse WHERE deleted_at IS NULL ORDER BY id", null
     ).use { c -> buildList { while (c.moveToNext()) add(c.toWarehouse()) } }
 
     fun getWarehouse(id: Long): Warehouse? = db.rawQuery(
-        "SELECT id, name, remark, created_at FROM warehouse WHERE id=?", arrayOf(id.toString())
+        "SELECT id, name, remark, created_at FROM warehouse WHERE id=? AND deleted_at IS NULL",
+        arrayOf(id.toString())
     ).use { c -> if (c.moveToFirst()) c.toWarehouse() else null }
 
     fun createWarehouse(name: String, remark: String): Long = db.insertOrThrow(
@@ -62,6 +63,30 @@ class Repository private constructor(context: Context) {
             db.setTransactionSuccessful()
         } finally {
             db.endTransaction()
+        }
+    }
+
+    /** 软删除：移入仓库回收站（照片保留，彻底删除时才清） */
+    fun softDeleteWarehouse(id: Long) {
+        db.update("warehouse", ContentValues().apply {
+            put("deleted_at", System.currentTimeMillis())
+        }, "id=?", arrayOf(id.toString()))
+    }
+
+    fun restoreWarehouse(id: Long) {
+        db.update("warehouse", ContentValues().apply {
+            putNull("deleted_at")
+        }, "id=?", arrayOf(id.toString()))
+    }
+
+    fun listDeletedWarehouses(): List<DeletedRow> = db.rawQuery(
+        "SELECT id, name, remark, deleted_at FROM warehouse WHERE deleted_at IS NOT NULL ORDER BY deleted_at DESC",
+        null
+    ).use { c ->
+        buildList {
+            while (c.moveToNext()) {
+                add(DeletedRow(c.getLong(0), c.getString(1), c.getString(2).orEmpty(), c.getLong(3)))
+            }
         }
     }
 
@@ -117,14 +142,15 @@ class Repository private constructor(context: Context) {
     // ---------------- 物品 ----------------
 
     fun listItems(categoryId: Long): List<ItemSummary> =
-        queryItemSummaries("FROM item i WHERE i.category_id=? ORDER BY i.id DESC",
+        queryItemSummaries(
+            "FROM item i WHERE i.category_id=? AND i.deleted_at IS NULL ORDER BY i.id DESC",
             arrayOf(categoryId.toString()))
 
     /** 仓库级物品总览：跨类目，新→旧 */
     fun listItemsByWarehouse(warehouseId: Long): List<ItemSummary> =
         queryItemSummaries(
             """FROM item i JOIN category c ON i.category_id = c.id
-               WHERE c.warehouse_id=? ORDER BY i.id DESC""",
+               WHERE c.warehouse_id=? AND i.deleted_at IS NULL ORDER BY i.id DESC""",
             arrayOf(warehouseId.toString())
         )
 
@@ -182,7 +208,7 @@ class Repository private constructor(context: Context) {
     }
 
     fun getItem(itemId: Long): Item? = db.rawQuery(
-        "SELECT id, category_id, name, unit, quantity, created_at FROM item WHERE id=?",
+        "SELECT id, category_id, name, unit, quantity, created_at FROM item WHERE id=? AND deleted_at IS NULL",
         arrayOf(itemId.toString())
     ).use { c -> if (c.moveToFirst()) c.toItem() else null }
 
@@ -353,6 +379,34 @@ class Repository private constructor(context: Context) {
             db.setTransactionSuccessful()
         } finally {
             db.endTransaction()
+        }
+    }
+
+    /** 软删除：移入物品回收站（照片保留，彻底删除时才清） */
+    fun softDeleteItem(itemId: Long) {
+        db.update("item", ContentValues().apply {
+            put("deleted_at", System.currentTimeMillis())
+        }, "id=?", arrayOf(itemId.toString()))
+    }
+
+    fun restoreItem(itemId: Long) {
+        db.update("item", ContentValues().apply {
+            putNull("deleted_at")
+        }, "id=?", arrayOf(itemId.toString()))
+    }
+
+    /** 仓库内已删除的物品（回收站），新删除的排前 */
+    fun listDeletedItems(warehouseId: Long): List<DeletedRow> = db.rawQuery(
+        """SELECT i.id, i.name, i.deleted_at
+           FROM item i JOIN category c ON i.category_id = c.id
+           WHERE c.warehouse_id=? AND i.deleted_at IS NOT NULL
+           ORDER BY i.deleted_at DESC""",
+        arrayOf(warehouseId.toString())
+    ).use { c ->
+        buildList {
+            while (c.moveToNext()) {
+                add(DeletedRow(c.getLong(0), c.getString(1), "", c.getLong(2)))
+            }
         }
     }
 

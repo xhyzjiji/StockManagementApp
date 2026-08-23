@@ -77,6 +77,14 @@ class MainActivity : AppCompatActivity() {
                     startActivity(RecordListActivity.intent(this, warehouseId))
                     true
                 }
+                R.id.action_recycle_bin -> {
+                    startActivity(
+                        RecycleBinActivity.itemBinIntent(
+                            this, warehouseId, vb.toolbar.title?.toString().orEmpty()
+                        )
+                    )
+                    true
+                }
                 R.id.action_rename_warehouse -> {
                     showWarehouseDialog()
                     true
@@ -243,8 +251,8 @@ class MainActivity : AppCompatActivity() {
                 when (which) {
                     0 -> startActivity(ItemEditActivity.editIntent(this, itemId, categoryId))
                     1 -> Dialogs.confirm(this, getString(R.string.item_delete_confirm, name)) {
-                        runInBackground({ repo.deleteItem(itemId); Unit }) {
-                            Toast.makeText(this, R.string.deleted, Toast.LENGTH_SHORT).show()
+                        runInBackground({ repo.softDeleteItem(itemId) }) {
+                            Toast.makeText(this, R.string.moved_to_bin, Toast.LENGTH_SHORT).show()
                             reload()
                         }
                     }
