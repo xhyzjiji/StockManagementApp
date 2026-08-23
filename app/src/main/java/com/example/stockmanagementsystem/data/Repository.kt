@@ -116,8 +116,21 @@ class Repository private constructor(context: Context) {
 
     // ---------------- 物品 ----------------
 
-    fun listItems(categoryId: Long): List<ItemSummary> = db.rawQuery(
-        """SELECT i.id, i.name, i.unit, i.quantity, i.created_at,
+    fun listItems(categoryId: Long): List<ItemSummary> =
+        queryItemSummaries("FROM item i WHERE i.category_id=? ORDER BY i.id DESC",
+            arrayOf(categoryId.toString()))
+
+    /** 仓库级物品总览：跨类目，新→旧 */
+    fun listItemsByWarehouse(warehouseId: Long): List<ItemSummary> =
+        queryItemSummaries(
+            """FROM item i JOIN category c ON i.category_id = c.id
+               WHERE c.warehouse_id=? ORDER BY i.id DESC""",
+            arrayOf(warehouseId.toString())
+        )
+
+    private fun queryItemSummaries(fromAndWhere: String, args: Array<String>): List<ItemSummary> =
+        db.rawQuery(
+            """SELECT i.id, i.name, i.unit, i.quantity, i.created_at,
                   (SELECT group_concat(ad.name || ': ' || av.value, '  ')
                      FROM attribute_value av
                      JOIN attribute_def ad ON ad.id = av.attribute_def_id
@@ -133,30 +146,33 @@ class Repository private constructor(context: Context) {
                      JOIN attribute_def ad2 ON ad2.id = av2.attribute_def_id
                     WHERE av2.item_id = i.id AND ad2.type = 'IMAGE' AND av2.value <> ''
                     ORDER BY ad2.sort_order LIMIT 1) AS image
-           FROM item i WHERE i.category_id=? ORDER BY i.id DESC""",
-        arrayOf(categoryId.toString())
-    ).use { c ->
-        buildList {
-            while (c.moveToNext()) {
-                add(
-                    ItemSummary(
-                        id = c.getLong(0),
-                        name = c.getString(1),
-                        unit = c.getString(2).orEmpty(),
-                        quantity = c.getDouble(3),
-                        createdAt = c.getLong(4),
-                        attrSummary = c.getString(5).orEmpty(),
-                        tags = AttrOptions.decode(c.getString(6).orEmpty()),
-                        firstImage = c.getString(7).takeIf { !it.isNullOrEmpty() },
+                 , i.category_id
+           $fromAndWhere""",
+            args
+        ).use { c ->
+            buildList {
+                while (c.moveToNext()) {
+                    add(
+                        ItemSummary(
+                            id = c.getLong(0),
+                            categoryId = c.getLong(8),
+                            name = c.getString(1),
+                            unit = c.getString(2).orEmpty(),
+                            quantity = c.getDouble(3),
+                            createdAt = c.getLong(4),
+                            attrSummary = c.getString(5).orEmpty(),
+                            tags = AttrOptions.decode(c.getString(6).orEmpty()),
+                            firstImage = c.getString(7).takeIf { !it.isNullOrEmpty() },
+                        )
                     )
-                )
+                }
             }
         }
-    }
 
     fun getItemDetail(itemId: Long): ItemDetail? {
         val item = getItem(itemId) ?: return null
-        val defs = listAttrDefs(item.categoryId)
+        val warehouseId = warehouseIdOfCategory(item.categoryId) ?: return null
+        val defs = listAttrDefs(warehouseId)
         val values = HashMap<Long, String>()
         db.rawQuery(
             "SELECT attribute_def_id, value FROM attribute_value WHERE item_id=?",
@@ -170,24 +186,29 @@ class Repository private constructor(context: Context) {
         arrayOf(itemId.toString())
     ).use { c -> if (c.moveToFirst()) c.toItem() else null }
 
-    /** 类目级属性定义（类目下所有物品共用） */
-    fun listAttrDefs(categoryId: Long): List<AttributeDef> = db.rawQuery(
-        "SELECT id, category_id, name, type, options, sort_order FROM attribute_def WHERE category_id=? ORDER BY sort_order, id",
-        arrayOf(categoryId.toString())
+    /** 仓库级属性定义（仓库下所有物品共用） */
+    fun listAttrDefs(warehouseId: Long): List<AttributeDef> = db.rawQuery(
+        "SELECT id, warehouse_id, name, type, options, sort_order FROM attribute_def WHERE warehouse_id=? ORDER BY sort_order, id",
+        arrayOf(warehouseId.toString())
     ).use { c -> buildList { while (c.moveToNext()) add(c.toAttrDef()) } }
 
+    fun warehouseIdOfCategory(categoryId: Long): Long? = db.rawQuery(
+        "SELECT warehouse_id FROM category WHERE id=?",
+        arrayOf(categoryId.toString())
+    ).use { c -> if (c.moveToFirst()) c.getLong(0) else null }
+
     /**
-     * 保存类目属性定义：增删改。删除定义或图片类型变更时，
-     * 该类目下所有物品对应的属性值与图片文件一并清除。
+     * 保存仓库属性定义：增删改。删除定义或图片类型变更时，
+     * 该仓库下所有物品对应的属性值与图片文件一并清除。
      */
-    fun saveCategoryAttrDefs(categoryId: Long, drafts: List<AttrDefDraft>) {
+    fun saveAttrDefs(warehouseId: Long, drafts: List<AttrDefDraft>) {
         db.beginTransaction()
         try {
-            val oldDefs = listAttrDefs(categoryId)
+            val oldDefs = listAttrDefs(warehouseId)
             val keptDefIds = drafts.mapNotNull { it.defId }.toHashSet()
             // 删除被移除的定义（值行随外键级联删除，图片文件手动清理）
             oldDefs.filter { it.id !in keptDefIds }.forEach { def ->
-                purgeDefValues(categoryId, def.id, purgeImages = def.type == AttrType.IMAGE)
+                purgeDefValues(def.id, purgeImages = def.type == AttrType.IMAGE)
                 db.delete("attribute_def", "id=?", arrayOf(def.id.toString()))
             }
             drafts.forEachIndexed { index, draft ->
@@ -196,7 +217,7 @@ class Repository private constructor(context: Context) {
                     db.insertOrThrow(
                         "attribute_def", null,
                         ContentValues().apply {
-                            put("category_id", categoryId)
+                            put("warehouse_id", warehouseId)
                             put("name", draft.name)
                             put("type", draft.type.wire)
                             put("options", AttrOptions.encode(draft.options))
@@ -205,8 +226,8 @@ class Repository private constructor(context: Context) {
                     )
                 } else {
                     if (oldDef.type != draft.type) {
-                        // 类型变化：清空该类目下所有物品的该属性值
-                        purgeDefValues(categoryId, oldDef.id, purgeImages = oldDef.type == AttrType.IMAGE)
+                        // 类型变化：清空该仓库下所有物品的该属性值
+                        purgeDefValues(oldDef.id, purgeImages = oldDef.type == AttrType.IMAGE)
                     }
                     db.update(
                         "attribute_def",
@@ -226,19 +247,18 @@ class Repository private constructor(context: Context) {
         }
     }
 
-    private fun purgeDefValues(categoryId: Long, defId: Long, purgeImages: Boolean) {
+    /** 图片值文件按目录清，属性值行整体删 */
+    private fun purgeDefValues(defId: Long, purgeImages: Boolean) {
         if (purgeImages) {
-            itemIdsOfCategory(categoryId).forEach { imageStore.deleteAttrDir(it, defId) }
+            db.rawQuery("SELECT DISTINCT item_id FROM attribute_value WHERE attribute_def_id=?",
+                arrayOf(defId.toString()))
+                .use { c -> while (c.moveToNext()) imageStore.deleteAttrDir(c.getLong(0), defId) }
         }
         db.delete("attribute_value", "attribute_def_id=?", arrayOf(defId.toString()))
     }
 
-    private fun itemIdsOfCategory(categoryId: Long): List<Long> =
-        db.rawQuery("SELECT id FROM item WHERE category_id=?", arrayOf(categoryId.toString()))
-            .use { c -> buildList { while (c.moveToNext()) add(c.getLong(0)) } }
-
     /**
-     * 保存物品：itemId 为 null 时新建。只写入属性值（属性定义由类目统一管理），
+     * 保存物品：itemId 为 null 时新建。只写入属性值（属性定义由仓库统一管理），
      * 暂存图转正入库，被移除/替换的图片文件同步清理。
      */
     fun saveItem(
@@ -266,12 +286,14 @@ class Repository private constructor(context: Context) {
                     ContentValues().apply {
                         put("name", name)
                         put("unit", unit)
+                        put("category_id", categoryId)
                     },
                     "id=?", arrayOf(itemId.toString())
                 )
             }
 
-            val defTypes = listAttrDefs(categoryId).associate { it.id to it.type }
+            val itemWarehouseId = warehouseIdOfCategory(categoryId) ?: error("类目不存在")
+            val defTypes = listAttrDefs(itemWarehouseId).associate { it.id to it.type }
             values.forEach { v ->
                 when (defTypes[v.defId]) {
                     AttrType.IMAGE -> saveImageValue(id, v)
@@ -423,7 +445,7 @@ class Repository private constructor(context: Context) {
 
     private fun Cursor.toAttrDef() = AttributeDef(
         id = getLong(0),
-        categoryId = getLong(1),
+        warehouseId = getLong(1),
         name = getString(2),
         type = AttrType.of(getString(3)),
         options = AttrOptions.decode(getString(4).orEmpty()),

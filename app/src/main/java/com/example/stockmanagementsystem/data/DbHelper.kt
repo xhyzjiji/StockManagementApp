@@ -48,7 +48,7 @@ class DbHelper(context: Context) : SQLiteOpenHelper(context, DB_NAME, null, DB_V
             """
             CREATE TABLE attribute_def(
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                category_id INTEGER NOT NULL REFERENCES category(id) ON DELETE CASCADE,
+                warehouse_id INTEGER NOT NULL REFERENCES warehouse(id) ON DELETE CASCADE,
                 name TEXT NOT NULL,
                 type TEXT NOT NULL,
                 options TEXT NOT NULL DEFAULT '',
@@ -85,7 +85,7 @@ class DbHelper(context: Context) : SQLiteOpenHelper(context, DB_NAME, null, DB_V
         )
         db.execSQL("CREATE INDEX idx_category_wh ON category(warehouse_id)")
         db.execSQL("CREATE INDEX idx_item_cat ON item(category_id)")
-        db.execSQL("CREATE INDEX idx_def_category ON attribute_def(category_id)")
+        db.execSQL("CREATE INDEX idx_def_wh ON attribute_def(warehouse_id)")
         db.execSQL("CREATE INDEX idx_value_item ON attribute_value(item_id)")
         db.execSQL("CREATE INDEX idx_record_wh ON stock_record(warehouse_id, created_at DESC)")
         db.execSQL("CREATE INDEX idx_record_item ON stock_record(item_id, created_at DESC)")
@@ -104,6 +104,6 @@ class DbHelper(context: Context) : SQLiteOpenHelper(context, DB_NAME, null, DB_V
 
     companion object {
         const val DB_NAME = "stock.db"
-        const val DB_VERSION = 5
+        const val DB_VERSION = 6
     }
 }

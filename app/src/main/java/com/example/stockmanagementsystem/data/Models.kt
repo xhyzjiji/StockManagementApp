@@ -51,6 +51,7 @@ data class Item(
 /** 物品列表摘要：附带属性摘要与首张参考图 */
 data class ItemSummary(
     val id: Long,
+    val categoryId: Long,
     val name: String,
     val unit: String,
     val quantity: Double,
@@ -61,10 +62,10 @@ data class ItemSummary(
     val createdAt: Long,
 )
 
-/** 属性定义，归属于某个类目（类目级自定义属性，类目下所有物品共用） */
+/** 属性定义，归属于某个仓库（仓库级自定义属性，仓库下所有物品共用） */
 data class AttributeDef(
     val id: Long,
-    val categoryId: Long,
+    val warehouseId: Long,
     val name: String,
     val type: AttrType,
     /** CHOICE 类型的候选值，已按分隔符拆分 */

@@ -3,24 +3,37 @@ package com.example.stockmanagementsystem
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import android.text.Editable
+import android.text.TextWatcher
 import android.view.View
+import android.widget.PopupMenu
+import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
-import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.GridLayoutManager
+import com.example.stockmanagementsystem.data.Category
+import com.example.stockmanagementsystem.data.ItemSummary
 import com.example.stockmanagementsystem.data.Repository
-import com.example.stockmanagementsystem.util.Insets
 import com.example.stockmanagementsystem.databinding.ActivityMainBinding
-import com.example.stockmanagementsystem.ui.CategoryAdapter
 import com.example.stockmanagementsystem.ui.Dialogs
+import com.example.stockmanagementsystem.ui.ItemAdapter
+import com.example.stockmanagementsystem.util.Insets
 import com.example.stockmanagementsystem.util.runInBackground
+import com.google.android.material.chip.Chip
 
-/** 仓库主页：类目列表（仓库上下文：EXTRA_WAREHOUSE_ID） */
+/** 仓库主页：物品总览（搜索 + 类目 chips 筛选 + 全部物品网格） */
 class MainActivity : AppCompatActivity() {
 
     private lateinit var vb: ActivityMainBinding
     private val repo by lazy { Repository.get(this) }
-    private lateinit var adapter: CategoryAdapter
+    private lateinit var adapter: ItemAdapter
     private var warehouseId: Long = -1
+
+    private var categories: List<Category> = emptyList()
+    private var allItems: List<ItemSummary> = emptyList()
+    /** null 表示「全部」 */
+    private var selectedCategoryId: Long? = null
+    private var searchByTag = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -35,15 +48,31 @@ class MainActivity : AppCompatActivity() {
             return
         }
 
-        adapter = CategoryAdapter(
-            onClick = { c -> startActivity(ItemListActivity.intent(this, c.id, c.name)) },
-            onLongClick = { c -> showCategoryOps(c.id, c.name) },
+        adapter = ItemAdapter(
+            imageStore = repo.imageStore,
+            onClick = { item -> startActivity(ItemDetailActivity.intent(this, item.id)) },
+            onLongClick = { item -> showItemOps(item.id, item.categoryId, item.name) },
         )
-        vb.recycler.layoutManager = LinearLayoutManager(this)
+        vb.recycler.layoutManager = GridLayoutManager(this, 2)
         vb.recycler.adapter = adapter
+
+        vb.btnSearchMode.setOnClickListener { showSearchModeMenu() }
+        vb.inputSearch.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) = Unit
+            override fun afterTextChanged(s: Editable?) = applyFilter()
+        })
 
         vb.toolbar.setOnMenuItemClickListener { item ->
             when (item.itemId) {
+                R.id.action_attrs -> {
+                    startActivity(
+                        WarehouseAttrsActivity.intent(
+                            this, warehouseId, vb.toolbar.title?.toString().orEmpty()
+                        )
+                    )
+                    true
+                }
                 R.id.action_records -> {
                     startActivity(RecordListActivity.intent(this, warehouseId))
                     true
@@ -55,11 +84,8 @@ class MainActivity : AppCompatActivity() {
                 else -> false
             }
         }
-        vb.fabAdd.setOnClickListener {
-            Dialogs.inputText(this, R.string.category_add, R.string.category_name_hint) { name ->
-                runInBackground({ repo.createCategory(warehouseId, name) }) { reload() }
-            }
-        }
+
+        vb.fabAdd.setOnClickListener { showAddItemTargetPicker() }
     }
 
     override fun onResume() {
@@ -68,25 +94,163 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun reload() {
-        runInBackground({ repo.getWarehouse(warehouseId)?.name to repo.listCategories(warehouseId) }) { (name, list) ->
+        runInBackground({
+            Triple(
+                repo.getWarehouse(warehouseId)?.name,
+                repo.listCategories(warehouseId),
+                repo.listItemsByWarehouse(warehouseId),
+            )
+        }) { (name, cats, items) ->
             if (name == null) {
                 finish()
                 return@runInBackground
             }
             vb.toolbar.title = name
-            adapter.submit(list)
-            vb.textEmpty.visibility = if (list.isEmpty()) View.VISIBLE else View.GONE
+            categories = cats
+            allItems = items
+            if (selectedCategoryId != null && cats.none { it.id == selectedCategoryId }) {
+                selectedCategoryId = null
+            }
+            rebuildCategoryChips()
+            applyFilter()
         }
     }
 
-    private fun showWarehouseDialog() {
-        runInBackground({ repo.getWarehouse(warehouseId) }) { w ->
-            if (w != null) {
-                Dialogs.warehouse(this, R.string.menu_rename_warehouse, w.name, w.remark) { name, remark ->
-                    runInBackground({ repo.updateWarehouse(warehouseId, name, remark); Unit }) { reload() }
-                }
+    // ---------------- 类目 chips ----------------
+
+    private fun rebuildCategoryChips() {
+        val group = vb.chipGroupFilter
+        group.setOnCheckedStateChangeListener(null)
+        group.removeAllViews()
+
+        val allChip = makeChip(getString(R.string.filter_all), null)
+        group.addView(allChip)
+        categories.forEach { c -> group.addView(makeChip(c.name, c.id)) }
+
+        val addChip = Chip(this).apply {
+            text = getString(R.string.category_add_chip)
+            isCheckable = false
+            setOnClickListener { showCreateCategoryDialog() }
+        }
+        group.addView(addChip)
+
+        group.setOnCheckedStateChangeListener { g, checkedIds ->
+            val chip = checkedIds.firstOrNull()?.let { g.findViewById<Chip>(it) }
+            selectedCategoryId = chip?.tag as? Long
+            applyFilter()
+        }
+        restoreChipSelection(allChip)
+    }
+
+    private fun makeChip(label: String, categoryId: Long?): Chip =
+        Chip(this).apply {
+            text = label
+            isCheckable = true
+            tag = categoryId
+            id = View.generateViewId()
+            if (categoryId != null) {
+                setOnLongClickListener { showCategoryOps(categoryId, label); true }
             }
         }
+
+    /** 重建 chips 后恢复选中态 */
+    private fun restoreChipSelection(allChip: Chip) {
+        val selected = selectedCategoryId
+        val target = if (selected == null) {
+            allChip
+        } else {
+            val group = vb.chipGroupFilter
+            (0 until group.childCount)
+                .mapNotNull { group.getChildAt(it) as? Chip }
+                .firstOrNull { it.tag as? Long == selected } ?: allChip
+        }
+        vb.chipGroupFilter.check(target.id)
+    }
+
+    // ---------------- 过滤 ----------------
+
+    private fun applyFilter() {
+        val selected = selectedCategoryId
+        val base = if (selected == null) allItems else allItems.filter { it.categoryId == selected }
+        val q = vb.inputSearch.text?.toString()?.trim().orEmpty()
+        val filtered = if (q.isEmpty()) base else base.filter { item ->
+            if (searchByTag) {
+                item.tags.any { it.contains(q, ignoreCase = true) }
+            } else {
+                item.name.contains(q, ignoreCase = true)
+            }
+        }
+        adapter.submit(filtered)
+        vb.textEmpty.visibility = if (filtered.isEmpty()) View.VISIBLE else View.GONE
+    }
+
+    private fun showSearchModeMenu() {
+        val byName = getString(R.string.search_mode_by_name)
+        val byTag = getString(R.string.search_mode_by_tag)
+        PopupMenu(this, vb.btnSearchMode).apply {
+            menu.add(byName)
+            menu.add(byTag)
+            setOnMenuItemClickListener { mi ->
+                searchByTag = mi.title == byTag
+                vb.btnSearchMode.text = mi.title
+                vb.layoutSearch.hint = getString(
+                    if (searchByTag) R.string.item_search_hint_tag else R.string.item_search_hint_name
+                )
+                applyFilter()
+                true
+            }
+            show()
+        }
+    }
+
+    // ---------------- 新建 ----------------
+
+    /** 选中具体类目时直接建物品；「全部」时先选目标类目 */
+    private fun showAddItemTargetPicker() {
+        val selected = selectedCategoryId
+        if (selected != null) {
+            startActivity(ItemEditActivity.createIntent(this, selected))
+            return
+        }
+        if (categories.isEmpty()) {
+            Toast.makeText(this, R.string.overview_need_category, Toast.LENGTH_SHORT).show()
+            return
+        }
+        PopupMenu(this, vb.fabAdd).apply {
+            categories.forEach { menu.add(it.name) }
+            setOnMenuItemClickListener { mi ->
+                categories.firstOrNull { it.name == mi.title }?.let {
+                    startActivity(ItemEditActivity.createIntent(this@MainActivity, it.id))
+                }
+                true
+            }
+            show()
+        }
+    }
+
+    private fun showCreateCategoryDialog() {
+        Dialogs.inputText(this, R.string.category_add, R.string.category_name_hint) { name ->
+            runInBackground({ repo.createCategory(warehouseId, name) }) { reload() }
+        }
+    }
+
+    // ---------------- 长按操作 ----------------
+
+    private fun showItemOps(itemId: Long, categoryId: Long, name: String) {
+        AlertDialog.Builder(this)
+            .setTitle(name)
+            .setItems(arrayOf(getString(R.string.action_edit), getString(R.string.action_delete))) { _, which ->
+                when (which) {
+                    0 -> startActivity(ItemEditActivity.editIntent(this, itemId, categoryId))
+                    1 -> Dialogs.confirm(this, getString(R.string.item_delete_confirm, name)) {
+                        runInBackground({ repo.deleteItem(itemId); Unit }) {
+                            Toast.makeText(this, R.string.deleted, Toast.LENGTH_SHORT).show()
+                            reload()
+                        }
+                    }
+                }
+            }
+            .show()
     }
 
     private fun showCategoryOps(id: Long, name: String) {
@@ -103,6 +267,16 @@ class MainActivity : AppCompatActivity() {
                 }
             }
             .show()
+    }
+
+    private fun showWarehouseDialog() {
+        runInBackground({ repo.getWarehouse(warehouseId) }) { w ->
+            if (w != null) {
+                Dialogs.warehouse(this, R.string.menu_rename_warehouse, w.name, w.remark) { name, remark ->
+                    runInBackground({ repo.updateWarehouse(warehouseId, name, remark); Unit }) { reload() }
+                }
+            }
+        }
     }
 
     companion object {

@@ -28,10 +28,7 @@
             android:name=".MainActivity"
             android:exported="false" />
         <activity
-            android:name=".ItemListActivity"
-            android:exported="false" />
-        <activity
-            android:name=".CategoryAttrsActivity"
+            android:name=".WarehouseAttrsActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
         <activity

@@ -10,34 +10,34 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.stockmanagementsystem.data.AttrDefDraft
 import com.example.stockmanagementsystem.data.AttrType
 import com.example.stockmanagementsystem.data.Repository
-import com.example.stockmanagementsystem.databinding.ActivityCategoryAttrsBinding
+import com.example.stockmanagementsystem.databinding.ActivityWarehouseAttrsBinding
 import com.example.stockmanagementsystem.ui.AttrDefAdapter
 import com.example.stockmanagementsystem.ui.AttrDefRow
 import com.example.stockmanagementsystem.ui.Dialogs
 import com.example.stockmanagementsystem.util.Insets
 import com.example.stockmanagementsystem.util.runInBackground
 
-/** 类目属性设置：统一定义该类目下所有物品共用的属性 */
-class CategoryAttrsActivity : AppCompatActivity() {
+/** 仓库属性设置：统一定义该仓库下所有物品共用的属性 */
+class WarehouseAttrsActivity : AppCompatActivity() {
 
-    private lateinit var vb: ActivityCategoryAttrsBinding
+    private lateinit var vb: ActivityWarehouseAttrsBinding
     private val repo by lazy { Repository.get(this) }
     private lateinit var adapter: AttrDefAdapter
-    private var categoryId: Long = -1
+    private var warehouseId: Long = -1
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        vb = ActivityCategoryAttrsBinding.inflate(layoutInflater)
+        vb = ActivityWarehouseAttrsBinding.inflate(layoutInflater)
         setContentView(vb.root)
         Insets.apply(this)
         vb.toolbar.setNavigationOnClickListener { finish() }
 
-        categoryId = intent.getLongExtra(EXTRA_CATEGORY_ID, -1)
-        if (categoryId <= 0) {
+        warehouseId = intent.getLongExtra(EXTRA_WAREHOUSE_ID, -1)
+        if (warehouseId <= 0) {
             finish()
             return
         }
-        vb.toolbar.subtitle = intent.getStringExtra(EXTRA_CATEGORY_NAME).orEmpty()
+        vb.toolbar.subtitle = intent.getStringExtra(EXTRA_WAREHOUSE_NAME).orEmpty()
 
         adapter = AttrDefAdapter(
             onEdit = { row -> editDef(row) },
@@ -62,7 +62,7 @@ class CategoryAttrsActivity : AppCompatActivity() {
         }
         vb.btnSave.setOnClickListener { save() }
 
-        runInBackground({ repo.listAttrDefs(categoryId) }) { defs ->
+        runInBackground({ repo.listAttrDefs(warehouseId) }) { defs ->
             adapter.submit(defs.map { AttrDefRow(it.id, it.name, it.type, it.options) })
             syncEmpty()
         }
@@ -114,19 +114,19 @@ class CategoryAttrsActivity : AppCompatActivity() {
             return
         }
         val drafts = adapter.rows.map { AttrDefDraft(it.defId, it.name, it.type, it.options) }
-        runInBackground({ repo.saveCategoryAttrDefs(categoryId, drafts) }) {
+        runInBackground({ repo.saveAttrDefs(warehouseId, drafts) }) {
             Toast.makeText(this, R.string.save_success, Toast.LENGTH_SHORT).show()
             finish()
         }
     }
 
     companion object {
-        const val EXTRA_CATEGORY_ID = "extra_category_id"
-        const val EXTRA_CATEGORY_NAME = "extra_category_name"
+        const val EXTRA_WAREHOUSE_ID = "extra_warehouse_id"
+        const val EXTRA_WAREHOUSE_NAME = "extra_warehouse_name"
 
-        fun intent(context: Context, categoryId: Long, categoryName: String): Intent =
-            Intent(context, CategoryAttrsActivity::class.java)
-                .putExtra(EXTRA_CATEGORY_ID, categoryId)
-                .putExtra(EXTRA_CATEGORY_NAME, categoryName)
+        fun intent(context: Context, warehouseId: Long, warehouseName: String): Intent =
+            Intent(context, WarehouseAttrsActivity::class.java)
+                .putExtra(EXTRA_WAREHOUSE_ID, warehouseId)
+                .putExtra(EXTRA_WAREHOUSE_NAME, warehouseName)
     }
 }

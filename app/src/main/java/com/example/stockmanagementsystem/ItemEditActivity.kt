@@ -3,6 +3,7 @@ package com.example.stockmanagementsystem
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import android.widget.PopupMenu
 import android.widget.Toast
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -11,6 +12,7 @@ import androidx.core.content.FileProvider
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.stockmanagementsystem.data.AttrType
 import com.example.stockmanagementsystem.data.AttrOptions
+import com.example.stockmanagementsystem.data.Category
 import com.example.stockmanagementsystem.data.Repository
 import com.example.stockmanagementsystem.databinding.ActivityItemEditBinding
 import com.example.stockmanagementsystem.ui.AttrEditAdapter
@@ -20,7 +22,7 @@ import com.example.stockmanagementsystem.util.Insets
 import com.example.stockmanagementsystem.util.runInBackground
 import java.io.File
 
-/** 物品新建/编辑：名称 + 类目统一定义的属性值（文本/数字/单选/参考图） */
+/** 物品新建/编辑：名称 + 单位 + 所属类目（可换） + 仓库统一定义的属性值 */
 class ItemEditActivity : AppCompatActivity(), AttrEditAdapter.Listener {
 
     private lateinit var vb: ActivityItemEditBinding
@@ -29,6 +31,7 @@ class ItemEditActivity : AppCompatActivity(), AttrEditAdapter.Listener {
 
     private var itemId: Long = -1
     private var categoryId: Long = -1
+    private var categories: List<Category> = emptyList()
 
     private var pendingCameraRow: AttrRow? = null
     private var pendingCameraFile: File? = null
@@ -87,7 +90,7 @@ class ItemEditActivity : AppCompatActivity(), AttrEditAdapter.Listener {
             finish()
             return
         }
-        // 属性定义统一在类目「属性设置」里维护，此页只填值
+        // 属性定义统一在仓库「属性设置」里维护，此页只填值
         vb.btnAddAttr.visibility = android.view.View.GONE
 
         adapter = AttrEditAdapter(repo.imageStore, this)
@@ -95,6 +98,7 @@ class ItemEditActivity : AppCompatActivity(), AttrEditAdapter.Listener {
         vb.recyclerAttrs.adapter = adapter
 
         vb.btnSave.setOnClickListener { save() }
+        vb.btnCategory.setOnClickListener { showCategoryPicker() }
 
         loadRows()
     }
@@ -105,6 +109,7 @@ class ItemEditActivity : AppCompatActivity(), AttrEditAdapter.Listener {
                 val d = repo.getItemDetail(itemId)
                 if (d == null) null else {
                     categoryId = d.item.categoryId
+                    repo.warehouseIdOfCategory(categoryId)?.let { categories = repo.listCategories(it) }
                     Triple(
                         d.item.name, d.item.unit,
                         d.attrs.map { av ->
@@ -122,13 +127,17 @@ class ItemEditActivity : AppCompatActivity(), AttrEditAdapter.Listener {
                     )
                 }
             } else {
-                // 新建：按类目定义生成空值行，单位默认「件」，可改为米、㎡、公斤等
-                Triple(
+                // 新建：按仓库定义生成空值行，单位默认「件」，可改为米、㎡、公斤等
+                val whId = repo.warehouseIdOfCategory(categoryId)
+                if (whId == null) null else {
+                    categories = repo.listCategories(whId)
+                    Triple(
                     "", getString(R.string.item_unit_default),
-                    repo.listAttrDefs(categoryId).map { def ->
+                    repo.listAttrDefs(whId).map { def ->
                         AttrRow(defId = def.id, name = def.name, type = def.type, options = def.options)
                     }
-                )
+                    )
+                }
             }
             result
         }) { result ->
@@ -139,6 +148,27 @@ class ItemEditActivity : AppCompatActivity(), AttrEditAdapter.Listener {
             vb.inputName.setText(result.first)
             vb.inputUnit.setText(result.second)
             adapter.submit(result.third)
+            updateCategoryButton()
+        }
+    }
+
+    /** 所属类目按钮：显示当前归属，点击可切换（属性是仓库级，切换不影响下方属性行） */
+    private fun updateCategoryButton() {
+        vb.btnCategory.text = categories.firstOrNull { it.id == categoryId }?.name.orEmpty()
+    }
+
+    private fun showCategoryPicker() {
+        if (categories.size <= 1) return
+        PopupMenu(this, vb.btnCategory).apply {
+            categories.forEach { menu.add(it.name) }
+            setOnMenuItemClickListener { mi ->
+                categories.firstOrNull { it.name == mi.title }?.let {
+                    categoryId = it.id
+                    updateCategoryButton()
+                }
+                true
+            }
+            show()
         }
     }
 
