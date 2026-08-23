@@ -17,7 +17,7 @@
         android:theme="@style/Theme.StockManagementSystem">
 
         <activity
-            android:name=".WarehouseListActivity"
+            android:name=".HomeShellActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

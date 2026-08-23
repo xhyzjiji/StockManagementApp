@@ -2,6 +2,21 @@
 <resources>
     <string name="app_name">库存管理</string>
 
+    <!-- 底部导航 -->
+    <string name="nav_home">app首页</string>
+    <string name="nav_warehouse">我的仓库</string>
+    <string name="nav_works">我的作品</string>
+    <string name="nav_inspiration">创作灵感</string>
+    <string name="placeholder_dev">正在开发中，敬请期待</string>
+
+    <!-- app 首页 -->
+    <string name="home_subtitle">管理你的库存宝库</string>
+    <string name="home_goto_warehouse">进入我的仓库</string>
+    <string name="home_features_title">现有功能</string>
+    <string name="home_features_body">· 「仓库-类目-物品」三级组织，支持多仓库\n· 类目级自定义属性：文本 / 数字 / 单选 / 标签 / 图片\n· 物品标签多选，列表页卡片展示标签底色\n· 计量单位自定义（件、米、㎡、公斤…）\n· 出入库操作与完整流水记录，详情页可看最近动态\n· 列表支持按名称 / 按标签搜索</string>
+    <string name="home_manual_title">使用说明书</string>
+    <string name="home_manual_body">1. 在「我的仓库」新建一个仓库\n2. 点进仓库，右下角新建类目\n3. 类目页右上「属性设置」统一定义属性（标签候选也在这里）\n4. 右下角添加物品，填名称、单位，勾选标签\n5. 点进物品详情，点「入库 / 出库」记流水\n6. 列表长按物品可编辑或删除，流水超过 5 条点「查看全部」翻页</string>
+
     <!-- 通用 -->
     <string name="action_ok">确定</string>
     <string name="action_cancel">取消</string>
