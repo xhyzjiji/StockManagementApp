@@ -51,5 +51,6 @@
         android:layout_gravity="bottom|end"
         android:layout_margin="24dp"
         android:contentDescription="@string/warehouse_create"
+        app:backgroundTint="@color/primary"
         app:srcCompat="@drawable/ic_add" />
 </FrameLayout>

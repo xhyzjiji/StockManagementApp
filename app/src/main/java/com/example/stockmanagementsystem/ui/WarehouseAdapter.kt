@@ -34,7 +34,7 @@ class WarehouseAdapter(
             vb.textRemark.text = w.remark
             vb.textRemark.visibility =
                 if (w.remark.isEmpty()) android.view.View.GONE else android.view.View.VISIBLE
-            vb.textCreated.text = Fmt.time(w.createdAt)
+            vb.textCreated.text = Fmt.date(w.createdAt)
             vb.root.setOnClickListener { onClick(w) }
             vb.root.setOnLongClickListener { onLongClick(w); true }
         }
