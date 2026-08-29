@@ -11,7 +11,7 @@
     <color name="divider">#E0E0E0</color>
     <color name="badge_bg">#E3F2FD</color>
     <color name="tag_bg">#F1F3F5</color>
-    <color name="app_bg">#F2ECD9</color>
+    <color name="app_bg">#EBF3F5</color>
     <color name="icon_tile_blue">#E5EEFA</color>
     <color name="image_placeholder">#EEEEEE</color>
 </resources>
