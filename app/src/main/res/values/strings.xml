@@ -114,6 +114,15 @@
     <string name="stock_qty_hint">数量</string>
     <string name="stock_qty_hint_with_unit">数量（%1$s）</string>
     <string name="stock_qty_required">请输入大于 0 的数量</string>
+    <string name="stock_price_hint">本次入库总价（元）</string>
+    <string name="stock_price_required">请输入本次入库总价，最多两位小数</string>
+    <string name="stock_price_line">均价 ¥%1$s · 剩余总价 ¥%2$s</string>
+    <string name="pricing_title">老库存尚未定价</string>
+    <string name="pricing_message">当前库存 %1$s 还没有价格，请选择本次入库的计价方式</string>
+    <string name="pricing_first_price">按首次定价（整批库存按本次单价）</string>
+    <string name="pricing_dilute">忽略老库存价格（本次总价摊到全部库存）</string>
+    <string name="pricing_correct">手动修正老库存总价</string>
+    <string name="old_stock_value_hint">老库存总价（元）</string>
     <string name="stock_note_hint">备注（可选）</string>
     <string name="stock_in_done">入库成功</string>
     <string name="stock_out_done">出库成功</string>
@@ -121,6 +130,7 @@
     <string name="stock_in_badge">入库 +%1$s</string>
     <string name="stock_out_badge">出库 -%1$s</string>
     <string name="stock_change">%1$s → %2$s</string>
+    <string name="stock_change_amount">%1$s → %2$s · 金额 ¥%3$s</string>
 
     <!-- 流水 -->
     <string name="record_title">出入库记录</string>

@@ -208,7 +208,7 @@ class Repository private constructor(context: Context) {
     }
 
     fun getItem(itemId: Long): Item? = db.rawQuery(
-        "SELECT id, category_id, name, unit, quantity, created_at FROM item WHERE id=? AND deleted_at IS NULL",
+        "SELECT id, category_id, name, unit, quantity, avg_price, total_value, created_at FROM item WHERE id=? AND deleted_at IS NULL",
         arrayOf(itemId.toString())
     ).use { c -> if (c.moveToFirst()) c.toItem() else null }
 
@@ -412,27 +412,68 @@ class Repository private constructor(context: Context) {
 
     // ---------------- 出入库 ----------------
 
-    /** 事务化出入库：更新库存并写入流水。出库超量时抛 [InsufficientStockException]。 */
-    fun applyStock(itemId: Long, type: StockType, quantity: Double, note: String): StockRecord {
+    /**
+     * 事务化出入库：更新库存（含平均价与剩余总价）并写入流水。
+     * 入库必须携带本次总价 [totalPrice]（元，最多两位小数）；
+     * 老库存未定价时按 [pricing] 选择计价方式（CORRECT 需带老库存总价 [correctedValue]）。
+     * 出库按当时平均价折算金额。出库超量时抛 [InsufficientStockException]。
+     */
+    fun applyStock(
+        itemId: Long,
+        type: StockType,
+        quantity: Double,
+        totalPrice: Double?,
+        note: String,
+        pricing: StockMath.InPricing = StockMath.InPricing.WEIGHTED,
+        correctedValue: Double? = null,
+    ): StockRecord {
         require(quantity > 0) { "数量必须大于 0" }
+        if (type == StockType.IN) {
+            requireNotNull(totalPrice) { "入库必须填写总价" }
+            require(totalPrice >= 0.0) { "总价不能为负" }
+            if (pricing == StockMath.InPricing.CORRECT) {
+                requireNotNull(correctedValue) { "修正模式必须提供老库存总价" }
+                require(correctedValue >= 0.0) { "总价不能为负" }
+            }
+        }
         db.beginTransaction()
         try {
             val row = db.rawQuery(
-                """SELECT i.name, i.unit, i.quantity, c.warehouse_id
+                """SELECT i.name, i.unit, i.quantity, c.warehouse_id, i.avg_price, i.total_value
                    FROM item i JOIN category c ON i.category_id = c.id
                    WHERE i.id=?""",
                 arrayOf(itemId.toString())
             ).use { c ->
                 if (!c.moveToFirst()) error("物品不存在")
-                StockRow(c.getString(0), c.getString(1).orEmpty(), c.getDouble(2), c.getLong(3))
+                StockRow(
+                    c.getString(0), c.getString(1).orEmpty(), c.getDouble(2), c.getLong(3),
+                    c.getDouble(4), c.getDouble(5),
+                )
             }
             val before = row.quantity
             val after = if (type == StockType.IN) before + quantity else before - quantity
             if (type == StockType.OUT && after < 0.0) {
                 throw InsufficientStockException(before, quantity)
             }
+            val valueAfter = if (type == StockType.IN) when (pricing) {
+                StockMath.InPricing.WEIGHTED ->
+                    StockMath.afterStockIn(before, row.totalValue, quantity, totalPrice!!)
+                StockMath.InPricing.FIRST_PRICE ->
+                    StockMath.afterStockInFirstPrice(before, quantity, totalPrice!!)
+                StockMath.InPricing.CORRECT ->
+                    StockMath.afterStockIn(before, correctedValue!!, quantity, totalPrice!!)
+            } else {
+                StockMath.afterStockOut(after, row.avgPrice)
+            }
+            // 出库流水的金额 = 库存总价的实际扣减（出清时为全部剩余总价）
+            val recordPrice = if (type == StockType.IN) StockMath.round2(totalPrice!!)
+            else StockMath.round2(row.totalValue - valueAfter.totalValue)
             db.update(
-                "item", ContentValues().apply { put("quantity", after) }, "id=?",
+                "item", ContentValues().apply {
+                    put("quantity", after)
+                    put("avg_price", valueAfter.avgPrice)
+                    put("total_value", valueAfter.totalValue)
+                }, "id=?",
                 arrayOf(itemId.toString())
             )
             val now = System.currentTimeMillis()
@@ -447,12 +488,16 @@ class Repository private constructor(context: Context) {
                     put("quantity", quantity)
                     put("before_qty", before)
                     put("after_qty", after)
+                    put("total_price", recordPrice)
                     put("note", note)
                     put("created_at", now)
                 }
             )
             db.setTransactionSuccessful()
-            return StockRecord(recordId, row.warehouseId, itemId, row.name, row.unit, type, quantity, before, after, note, now)
+            return StockRecord(
+                recordId, row.warehouseId, itemId, row.name, row.unit, type,
+                quantity, before, after, recordPrice, note, now
+            )
         } finally {
             db.endTransaction()
         }
@@ -463,6 +508,8 @@ class Repository private constructor(context: Context) {
         val unit: String,
         val quantity: Double,
         val warehouseId: Long,
+        val avgPrice: Double,
+        val totalValue: Double,
     )
 
     fun listRecordsForWarehouse(warehouseId: Long, limit: Int = 500): List<StockRecord> =
@@ -495,7 +542,7 @@ class Repository private constructor(context: Context) {
         Warehouse(getLong(0), getString(1), getString(2), getLong(3))
 
     private fun Cursor.toItem() =
-        Item(getLong(0), getLong(1), getString(2), getString(3).orEmpty(), getDouble(4), getLong(5))
+        Item(getLong(0), getLong(1), getString(2), getString(3).orEmpty(), getDouble(4), getDouble(5), getDouble(6), getLong(7))
 
     private fun Cursor.toAttrDef() = AttributeDef(
         id = getLong(0),
@@ -516,6 +563,8 @@ class Repository private constructor(context: Context) {
         quantity = getDouble(getColumnIndexOrThrow("quantity")),
         beforeQty = getDouble(getColumnIndexOrThrow("before_qty")),
         afterQty = getDouble(getColumnIndexOrThrow("after_qty")),
+        totalPrice = getColumnIndexOrThrow("total_price")
+            .let { if (isNull(it)) null else getDouble(it) },
         note = getString(getColumnIndexOrThrow("note")).orEmpty(),
         createdAt = getLong(getColumnIndexOrThrow("created_at")),
     )

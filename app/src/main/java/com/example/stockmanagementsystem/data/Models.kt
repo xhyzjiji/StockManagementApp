@@ -53,6 +53,10 @@ data class Item(
     /** 计量单位：入库/出库/库存展示用，如 件、米、㎡、公斤 */
     val unit: String,
     val quantity: Double,
+    /** 平均单价（元，两位小数），随入库总价加权、出库折算维护 */
+    val avgPrice: Double,
+    /** 剩余总价（元，两位小数） */
+    val totalValue: Double,
     val createdAt: Long,
 )
 
@@ -103,6 +107,8 @@ data class StockRecord(
     val quantity: Double,
     val beforeQty: Double,
     val afterQty: Double,
+    /** 入库：本次入库总价（必填）；出库：按当时均价折算的金额；旧数据为 null */
+    val totalPrice: Double?,
     val note: String,
     val createdAt: Long,
 )

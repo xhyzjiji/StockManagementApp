@@ -41,6 +41,8 @@ class DbHelper(context: Context) : SQLiteOpenHelper(context, DB_NAME, null, DB_V
                 name TEXT NOT NULL,
                 unit TEXT NOT NULL DEFAULT '',
                 quantity REAL NOT NULL DEFAULT 0,
+                avg_price REAL NOT NULL DEFAULT 0,
+                total_value REAL NOT NULL DEFAULT 0,
                 created_at INTEGER NOT NULL,
                 deleted_at INTEGER
             )
@@ -80,6 +82,7 @@ class DbHelper(context: Context) : SQLiteOpenHelper(context, DB_NAME, null, DB_V
                 quantity REAL NOT NULL,
                 before_qty REAL NOT NULL,
                 after_qty REAL NOT NULL,
+                total_price REAL,
                 note TEXT NOT NULL DEFAULT '',
                 created_at INTEGER NOT NULL
             )
@@ -94,18 +97,27 @@ class DbHelper(context: Context) : SQLiteOpenHelper(context, DB_NAME, null, DB_V
     }
 
     override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
-        // 属性定义从物品级迁移到类目级：首版未发布，直接重建
-        db.execSQL("DROP TABLE IF EXISTS stock_record")
-        db.execSQL("DROP TABLE IF EXISTS attribute_value")
-        db.execSQL("DROP TABLE IF EXISTS attribute_def")
-        db.execSQL("DROP TABLE IF EXISTS item")
-        db.execSQL("DROP TABLE IF EXISTS category")
-        db.execSQL("DROP TABLE IF EXISTS warehouse")
-        onCreate(db)
+        if (oldVersion < 7) {
+            // 属性定义从物品级迁移到类目级：首版未发布，直接重建
+            db.execSQL("DROP TABLE IF EXISTS stock_record")
+            db.execSQL("DROP TABLE IF EXISTS attribute_value")
+            db.execSQL("DROP TABLE IF EXISTS attribute_def")
+            db.execSQL("DROP TABLE IF EXISTS item")
+            db.execSQL("DROP TABLE IF EXISTS category")
+            db.execSQL("DROP TABLE IF EXISTS warehouse")
+            onCreate(db)
+            return
+        }
+        if (oldVersion < 8) {
+            // 库存金额：物品维护平均价与剩余总价，流水记录本次入库总价
+            db.execSQL("ALTER TABLE item ADD COLUMN avg_price REAL NOT NULL DEFAULT 0")
+            db.execSQL("ALTER TABLE item ADD COLUMN total_value REAL NOT NULL DEFAULT 0")
+            db.execSQL("ALTER TABLE stock_record ADD COLUMN total_price REAL")
+        }
     }
 
     companion object {
         const val DB_NAME = "stock.db"
-        const val DB_VERSION = 7
+        const val DB_VERSION = 8
     }
 }

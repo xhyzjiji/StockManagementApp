@@ -15,6 +15,7 @@ import com.example.stockmanagementsystem.data.AttrWithValue
 import com.example.stockmanagementsystem.data.InsufficientStockException
 import com.example.stockmanagementsystem.data.ItemDetail
 import com.example.stockmanagementsystem.data.Repository
+import com.example.stockmanagementsystem.data.StockMath
 import com.example.stockmanagementsystem.data.StockType
 import com.example.stockmanagementsystem.databinding.ActivityItemDetailBinding
 import com.example.stockmanagementsystem.ui.AttrViewAdapter
@@ -95,6 +96,11 @@ class ItemDetailActivity : AppCompatActivity() {
             detail = d
             vb.toolbar.title = d.item.name
             vb.textQty.text = Fmt.qtyWithUnit(d.item.quantity, d.item.unit)
+            vb.textPrice.text = getString(
+                R.string.stock_price_line,
+                Fmt.money(d.item.avgPrice),
+                Fmt.money(d.item.totalValue),
+            )
             bindHeroAndTags(d)
             attrAdapter.submit(listContentOf(d))
             recordAdapter.submit(records)
@@ -146,33 +152,55 @@ class ItemDetailActivity : AppCompatActivity() {
 
     private fun showStockDialog(isIn: Boolean) {
         val d = detail ?: return
-        Dialogs.stockOp(this, isIn, d.item.name, d.item.quantity, d.item.unit) { qty, note ->
-            Bg.run {
-                val error = try {
-                    repo.applyStock(itemId, if (isIn) StockType.IN else StockType.OUT, qty, note)
-                    null
-                } catch (e: InsufficientStockException) {
-                    e
+        Dialogs.stockOp(this, isIn, d.item.name, d.item.quantity, d.item.unit) { qty, price, note ->
+            // 老库存未定价（有库存但总价为 0）的入库，先让用户选计价方式
+            if (isIn && d.item.quantity > 0 && d.item.totalValue <= 0.0) {
+                Dialogs.unpricedPricing(this, d.item.quantity, d.item.unit) { pricing, corrected ->
+                    doStockOp(isIn, qty, price, note, pricing, corrected)
                 }
-                runOnUiThread {
-                    if (isFinishing || isDestroyed) return@runOnUiThread
-                    if (error != null) {
-                        Toast.makeText(
-                            this,
-                            getString(
-                                R.string.stock_insufficient,
-                                Fmt.qtyWithUnit(error.available, d.item.unit)
-                            ),
-                            Toast.LENGTH_SHORT
-                        ).show()
-                    } else {
-                        Toast.makeText(
-                            this,
-                            if (isIn) R.string.stock_in_done else R.string.stock_out_done,
-                            Toast.LENGTH_SHORT
-                        ).show()
-                        reload()
-                    }
+            } else {
+                doStockOp(isIn, qty, price, note, StockMath.InPricing.WEIGHTED, null)
+            }
+        }
+    }
+
+    private fun doStockOp(
+        isIn: Boolean,
+        qty: Double,
+        price: Double?,
+        note: String,
+        pricing: StockMath.InPricing,
+        correctedValue: Double?,
+    ) {
+        val d = detail ?: return
+        Bg.run {
+            val error = try {
+                repo.applyStock(
+                    itemId, if (isIn) StockType.IN else StockType.OUT, qty, price, note,
+                    pricing, correctedValue,
+                )
+                null
+            } catch (e: InsufficientStockException) {
+                e
+            }
+            runOnUiThread {
+                if (isFinishing || isDestroyed) return@runOnUiThread
+                if (error != null) {
+                    Toast.makeText(
+                        this,
+                        getString(
+                            R.string.stock_insufficient,
+                            Fmt.qtyWithUnit(error.available, d.item.unit)
+                        ),
+                        Toast.LENGTH_SHORT
+                    ).show()
+                } else {
+                    Toast.makeText(
+                        this,
+                        if (isIn) R.string.stock_in_done else R.string.stock_out_done,
+                        Toast.LENGTH_SHORT
+                    ).show()
+                    reload()
                 }
             }
         }

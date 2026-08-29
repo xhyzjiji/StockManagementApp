@@ -18,6 +18,10 @@ object Fmt {
     fun qtyWithUnit(value: Double, unit: String): String =
         if (unit.isEmpty()) qty(value) else "${qty(value)} $unit"
 
+    /** 金额展示：固定两位小数，如 10.00、6.67 */
+    fun money(value: Double): String =
+        BigDecimal(value).setScale(2, RoundingMode.HALF_UP).toPlainString()
+
     fun time(millis: Long): String = timeFormat.format(Date(millis))
 
     /** 日期展示：2026/08/22 */

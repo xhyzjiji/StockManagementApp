@@ -1,12 +1,14 @@
 package com.example.stockmanagementsystem.ui
 
 import android.content.Context
+import android.text.InputType
 import android.view.LayoutInflater
 import android.view.View
 import android.widget.Toast
 import com.example.stockmanagementsystem.R
 import com.example.stockmanagementsystem.data.AttrOptions
 import com.example.stockmanagementsystem.data.AttrType
+import com.example.stockmanagementsystem.data.StockMath
 import com.example.stockmanagementsystem.databinding.DialogAttrDefBinding
 import com.example.stockmanagementsystem.databinding.DialogImagePreviewBinding
 import com.example.stockmanagementsystem.databinding.DialogStockOpBinding
@@ -161,14 +163,14 @@ object Dialogs {
         MaterialAlertDialogBuilder(context).setView(vb.root).show()
     }
 
-    /** 入库/出库弹窗：onOk(数量, 备注)，出库在弹窗层先做超量校验；unit 为物品计量单位，可为空 */
+    /** 入库/出库弹窗：onOk(数量, 入库总价, 备注)，入库必填总价（出库传 null），出库在弹窗层先做超量校验 */
     fun stockOp(
         context: Context,
         isIn: Boolean,
         itemName: String,
         currentQty: Double,
         unit: String,
-        onOk: (Double, String) -> Unit,
+        onOk: (Double, Double?, String) -> Unit,
     ) {
         val vb = DialogStockOpBinding.inflate(LayoutInflater.from(context))
         vb.textCurrent.text =
@@ -176,6 +178,7 @@ object Dialogs {
         if (unit.isNotEmpty()) {
             vb.layoutQty.hint = context.getString(R.string.stock_qty_hint_with_unit, unit)
         }
+        vb.layoutPrice.visibility = if (isIn) View.VISIBLE else View.GONE
         val dialog = MaterialAlertDialogBuilder(context)
             .setTitle(
                 context.getString(
@@ -197,8 +200,76 @@ object Dialogs {
                     context.getString(R.string.stock_insufficient, Fmt.qtyWithUnit(currentQty, unit))
                 return@setOnClickListener
             }
+            val price = if (isIn) {
+                val raw = vb.inputPrice.text?.toString()?.trim().orEmpty()
+                if (!PRICE_PATTERN.matches(raw)) {
+                    vb.layoutPrice.error = context.getString(R.string.stock_price_required)
+                    return@setOnClickListener
+                }
+                raw.toDouble()
+            } else {
+                null
+            }
             dialog.dismiss()
-            onOk(qty, vb.inputNote.text?.toString()?.trim().orEmpty())
+            onOk(qty, price, vb.inputNote.text?.toString()?.trim().orEmpty())
         }
     }
+
+    /**
+     * 入库时老库存尚未定价：选择定价方式。
+     * 选 CORRECT 会再弹「老库存总价」输入框；onPick(方式, 修正总价?)
+     */
+    fun unpricedPricing(
+        context: Context,
+        oldQty: Double,
+        unit: String,
+        onPick: (StockMath.InPricing, Double?) -> Unit,
+    ) {
+        val items = arrayOf(
+            context.getString(R.string.pricing_first_price),
+            context.getString(R.string.pricing_dilute),
+            context.getString(R.string.pricing_correct),
+        )
+        MaterialAlertDialogBuilder(context)
+            .setTitle(R.string.pricing_title)
+            .setMessage(context.getString(R.string.pricing_message, Fmt.qtyWithUnit(oldQty, unit)))
+            .setItems(items) { dlg, which ->
+                dlg.dismiss()
+                when (which) {
+                    0 -> onPick(StockMath.InPricing.FIRST_PRICE, null)
+                    1 -> onPick(StockMath.InPricing.WEIGHTED, null)
+                    else -> inputCorrectedValue(context, onPick)
+                }
+            }
+            .setNegativeButton(R.string.action_cancel, null)
+            .show()
+    }
+
+    /** 手动修正老库存总价输入框（CORRECT 分支用） */
+    private fun inputCorrectedValue(
+        context: Context,
+        onPick: (StockMath.InPricing, Double?) -> Unit,
+    ) {
+        val vb = DialogTextInputBinding.inflate(LayoutInflater.from(context))
+        vb.layoutInput.hint = context.getString(R.string.old_stock_value_hint)
+        vb.input.inputType = InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_FLAG_DECIMAL
+        val dialog = MaterialAlertDialogBuilder(context)
+            .setTitle(R.string.pricing_correct)
+            .setView(vb.root)
+            .setNegativeButton(R.string.action_cancel, null)
+            .setPositiveButton(R.string.action_ok, null)
+            .show()
+        dialog.getButton(android.app.AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+            val raw = vb.input.text?.toString()?.trim().orEmpty()
+            if (!PRICE_PATTERN.matches(raw)) {
+                vb.layoutInput.error = context.getString(R.string.stock_price_required)
+                return@setOnClickListener
+            }
+            dialog.dismiss()
+            onPick(StockMath.InPricing.CORRECT, raw.toDouble())
+        }
+    }
+
+    /** 金额输入：非负数字，最多两位小数 */
+    private val PRICE_PATTERN = Regex("""\d+(\.\d{1,2})?""")
 }

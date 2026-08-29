@@ -45,12 +45,20 @@ class RecordAdapter(
             vb.textItemName.text = r.itemName
             vb.textItemName.visibility = if (showItemName) View.VISIBLE else View.GONE
             vb.textTime.text = Fmt.time(r.createdAt)
-            vb.textChange.text =
+            vb.textChange.text = if (r.totalPrice != null) {
+                ctx.getString(
+                    R.string.stock_change_amount,
+                    Fmt.qtyWithUnit(r.beforeQty, r.unit),
+                    Fmt.qtyWithUnit(r.afterQty, r.unit),
+                    Fmt.money(r.totalPrice),
+                )
+            } else {
                 ctx.getString(
                     R.string.stock_change,
                     Fmt.qtyWithUnit(r.beforeQty, r.unit),
                     Fmt.qtyWithUnit(r.afterQty, r.unit),
                 )
+            }
             vb.textNote.text = r.note
             vb.textNote.visibility = if (r.note.isEmpty()) View.GONE else View.VISIBLE
         }

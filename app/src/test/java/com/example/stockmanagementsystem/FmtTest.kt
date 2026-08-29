@@ -44,4 +44,11 @@ class FmtTest {
     fun computeAfter_zeroDelta() {
         Fmt.computeAfter(1.0, 0.0, isIn = true)
     }
+
+    @Test
+    fun money_fixedTwoDecimals() {
+        assertEquals("10.00", Fmt.money(10.0))
+        assertEquals("6.67", Fmt.money(100.0 / 15.0))
+        assertEquals("0.01", Fmt.money(0.005))
+    }
 }
