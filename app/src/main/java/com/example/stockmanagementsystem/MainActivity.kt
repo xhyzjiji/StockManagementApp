@@ -105,6 +105,10 @@ class MainActivity : AppCompatActivity() {
                     )
                     true
                 }
+                R.id.action_stats -> {
+                    startActivity(WarehouseStatsActivity.intent(this, warehouseId))
+                    true
+                }
                 R.id.action_rename_warehouse -> {
                     showWarehouseDialog()
                     true

@@ -42,6 +42,9 @@
             android:name=".RecordListActivity"
             android:exported="false" />
         <activity
+            android:name=".WarehouseStatsActivity"
+            android:exported="false" />
+        <activity
             android:name=".ItemRecordListActivity"
             android:exported="false" />
         <activity

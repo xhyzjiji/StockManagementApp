@@ -126,6 +126,19 @@ class InsufficientStockException(
     val requested: Double,
 ) : Exception("库存不足：当前 $available，需要 $requested")
 
+/** 一次入库的单价点：入库时间 + 当批单价（总价 ÷ 数量） */
+data class PricePoint(
+    val time: Long,
+    val price: Double,
+)
+
+/** 某物品在某标签字段下的标签值（统计页聚合用；tags 已按分隔符拆分） */
+data class TagValue(
+    val defId: Long,
+    val itemId: Long,
+    val tags: List<String>,
+)
+
 /** 属性定义草稿（类目属性设置页提交用） */
 data class AttrDefDraft(
     val defId: Long?,          // null 表示新增

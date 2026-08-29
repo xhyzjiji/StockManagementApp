@@ -151,4 +151,23 @@
     <string name="record_history_title">最近出入库</string>
     <string name="record_view_all">查看全部（共 %1$d 条）</string>
     <string name="record_item_deleted">物品已删除</string>
+
+    <!-- 数据统计 -->
+    <string name="stats_title">数据统计</string>
+    <string name="stats_overview_kinds">物品种类</string>
+    <string name="stats_overview_value">库存总价</string>
+    <string name="stats_kinds_value">%1$d 种</string>
+    <string name="stats_activity">出入库频率（近 26 周）</string>
+    <string name="stats_activity_in">入库频率</string>
+    <string name="stats_activity_out">出库频率</string>
+    <string name="stats_less">少</string>
+    <string name="stats_more">多</string>
+    <string name="stats_tag_section">标签类别分布</string>
+    <string name="stats_group_by_item">按物品分组</string>
+    <string name="stats_tag_empty">暂无标签字段</string>
+    <string name="stats_pie_empty">该标签字段下暂无库存</string>
+    <string name="stats_legend_share">%1$s · %2$s · %3$s%%</string>
+    <string name="stats_price_section">物品单价变化</string>
+    <string name="stats_price_empty_items">暂无物品</string>
+    <string name="stats_price_no_records">该物品暂无入库定价记录</string>
 </resources>

@@ -28,6 +28,11 @@ object Fmt {
     /** 日期展示：2026/08/22 */
     fun date(millis: Long): String = dateFormat.format(Date(millis))
 
+    private val dayShortFormat = SimpleDateFormat("MM/dd", Locale.getDefault())
+
+    /** 短日期展示：08/22，用于图表横轴 */
+    fun dayShort(millis: Long): String = dayShortFormat.format(Date(millis))
+
     /** 在库天数：起点到当前的完整天数（当天入库为 0），起点在未来时按 0 计 */
     fun daysSince(sinceMs: Long, nowMs: Long = System.currentTimeMillis()): Long =
         (nowMs - sinceMs).coerceAtLeast(0) / DAY_MS

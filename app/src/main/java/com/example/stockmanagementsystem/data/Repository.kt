@@ -542,6 +542,44 @@ class Repository private constructor(context: Context) {
         arrayOf(itemId.toString())
     ).use { c -> if (c.moveToFirst()) c.getLong(0) else 0L }
 
+    // ---------------- 数据统计 ----------------
+
+    /** 仓库在指定时间之后的流水（时间 + 类型，出入库频率热力图用） */
+    fun recordActivitySince(warehouseId: Long, sinceMillis: Long): List<Pair<Long, String>> = db.rawQuery(
+        "SELECT created_at, type FROM stock_record WHERE warehouse_id=? AND created_at>=?",
+        arrayOf(warehouseId.toString(), sinceMillis.toString())
+    ).use { c -> buildList { while (c.moveToNext()) add(c.getLong(0) to c.getString(1)) } }
+
+    /** 物品的历次入库单价（时间升序）：仅统计录入了总价的入库 */
+    fun pricedInRecordsForItem(itemId: Long): List<PricePoint> = db.rawQuery(
+        """SELECT created_at, total_price, quantity FROM stock_record
+           WHERE item_id=? AND type='IN' AND total_price IS NOT NULL ORDER BY created_at""",
+        arrayOf(itemId.toString())
+    ).use { c ->
+        buildList {
+            while (c.moveToNext()) {
+                val qty = c.getDouble(2)
+                if (qty > 0) add(PricePoint(c.getLong(0), StockMath.round2(c.getDouble(1) / qty)))
+            }
+        }
+    }
+
+    /** 仓库内所有标签字段（TAGS 属性）下各物品的标签值，未删除物品、非空值 */
+    fun tagValuesForWarehouse(warehouseId: Long): List<TagValue> = db.rawQuery(
+        """SELECT av.attribute_def_id, av.item_id, av.value FROM attribute_value av
+           JOIN attribute_def ad ON ad.id = av.attribute_def_id
+           JOIN item i ON i.id = av.item_id
+           JOIN category c ON c.id = i.category_id
+           WHERE c.warehouse_id=? AND ad.type='TAGS' AND av.value <> '' AND i.deleted_at IS NULL""",
+        arrayOf(warehouseId.toString())
+    ).use { c ->
+        buildList {
+            while (c.moveToNext()) {
+                add(TagValue(c.getLong(0), c.getLong(1), AttrOptions.decode(c.getString(2).orEmpty())))
+            }
+        }
+    }
+
     // ---------------- 游标映射 ----------------
 
     private fun Cursor.toWarehouse() =
