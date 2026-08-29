@@ -57,6 +57,8 @@ data class Item(
     val avgPrice: Double,
     /** 剩余总价（元，两位小数） */
     val totalValue: Double,
+    /** 当前这批库存的入库起点（在库天数由此计算）；无库存 / 出清后为 null */
+    val stockSince: Long?,
     val createdAt: Long,
 )
 
@@ -67,6 +69,10 @@ data class ItemSummary(
     val name: String,
     val unit: String,
     val quantity: Double,
+    /** 平均单价（元/计量单位，两位小数） */
+    val avgPrice: Double,
+    /** 当前这批库存的入库起点；无库存为 null */
+    val stockSince: Long?,
     /** 标签（TAGS 类型属性的多选值，已拆好） */
     val tags: List<String>,
     val attrSummary: String,

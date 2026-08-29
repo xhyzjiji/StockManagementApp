@@ -48,8 +48,8 @@ object StockMath {
         return ValueAfter(total, avg)
     }
 
-    /** 出库：均价不变，剩余总价 = 出库后数量 × 均价；出清时总价与均价归零 */
+    /** 出库：均价不变，剩余总价 = 出库后数量 × 均价；出清（含浮点尾差）时总价与均价归零 */
     fun afterStockOut(afterQty: Double, avgPrice: Double): ValueAfter =
-        if (afterQty <= 0.0) ValueAfter(0.0, 0.0)
+        if (afterQty < 1e-9) ValueAfter(0.0, 0.0)
         else ValueAfter(round2(afterQty * avgPrice), avgPrice)
 }

@@ -72,8 +72,16 @@
     <string name="item_unit_default">件</string>
     <string name="item_category_label">所属类目</string>
     <string name="item_stock_qty">库存 %1$s</string>
+    <string name="item_price_unit">%1$s 元/%2$s</string>
+    <string name="item_price_plain">%1$s 元</string>
+    <string name="item_stock_days">在库 %1$d 天</string>
+    <string name="item_no_stock">暂无库存</string>
     <string name="search_mode_by_name">按名称</string>
     <string name="search_mode_by_tag">按标签</string>
+    <string name="menu_sort">列表排序</string>
+    <string name="sort_default">录入时间（新→旧）</string>
+    <string name="sort_days_desc">在库天数（长→短）</string>
+    <string name="sort_days_asc">在库天数（短→长）</string>
     <string name="item_search_hint_name">输入物品名称</string>
     <string name="item_search_hint_tag">输入标签名</string>
     <string name="item_delete_confirm">删除物品 "%1$s"？将先移入回收站，照片暂保留，可在回收站恢复或彻底删除。</string>

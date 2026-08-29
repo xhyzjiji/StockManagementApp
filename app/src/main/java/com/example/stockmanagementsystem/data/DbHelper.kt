@@ -43,6 +43,7 @@ class DbHelper(context: Context) : SQLiteOpenHelper(context, DB_NAME, null, DB_V
                 quantity REAL NOT NULL DEFAULT 0,
                 avg_price REAL NOT NULL DEFAULT 0,
                 total_value REAL NOT NULL DEFAULT 0,
+                stock_since INTEGER,
                 created_at INTEGER NOT NULL,
                 deleted_at INTEGER
             )
@@ -114,10 +115,31 @@ class DbHelper(context: Context) : SQLiteOpenHelper(context, DB_NAME, null, DB_V
             db.execSQL("ALTER TABLE item ADD COLUMN total_value REAL NOT NULL DEFAULT 0")
             db.execSQL("ALTER TABLE stock_record ADD COLUMN total_price REAL")
         }
+        if (oldVersion < 9) {
+            // 在库天数：stock_since 为当前这批库存的入库起点（出清后重新计时）
+            db.execSQL("ALTER TABLE item ADD COLUMN stock_since INTEGER")
+            // 回填：有库存的物品，以「最后一次出清之后的首次入库时间」为起点；无流水则退回创建时间
+            db.rawQuery("SELECT id, created_at FROM item WHERE quantity > 0", null).use { items ->
+                while (items.moveToNext()) {
+                    val itemId = items.getLong(0)
+                    val since = db.rawQuery(
+                        """SELECT MIN(created_at) FROM stock_record
+                           WHERE item_id=? AND created_at > COALESCE(
+                               (SELECT MAX(created_at) FROM stock_record
+                                 WHERE item_id=? AND after_qty = 0), 0)""",
+                        arrayOf(itemId.toString(), itemId.toString())
+                    ).use { c -> if (c.moveToFirst() && !c.isNull(0)) c.getLong(0) else items.getLong(1) }
+                    db.execSQL(
+                        "UPDATE item SET stock_since=? WHERE id=?",
+                        arrayOf(since, itemId)
+                    )
+                }
+            }
+        }
     }
 
     companion object {
         const val DB_NAME = "stock.db"
-        const val DB_VERSION = 8
+        const val DB_VERSION = 9
     }
 }

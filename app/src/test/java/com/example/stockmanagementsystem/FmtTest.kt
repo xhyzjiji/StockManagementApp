@@ -51,4 +51,15 @@ class FmtTest {
         assertEquals("6.67", Fmt.money(100.0 / 15.0))
         assertEquals("0.01", Fmt.money(0.005))
     }
+
+    @Test
+    fun daysSince_countsWholeDays() {
+        val day = 24L * 60 * 60 * 1000
+        val now = 1_800_000_000_000L
+        assertEquals(0, Fmt.daysSince(now, now))
+        assertEquals(0, Fmt.daysSince(now - day + 1000, now))
+        assertEquals(1, Fmt.daysSince(now - day, now))
+        assertEquals(3, Fmt.daysSince(now - 3 * day - 1000, now))
+        assertEquals(0, Fmt.daysSince(now + day, now))
+    }
 }

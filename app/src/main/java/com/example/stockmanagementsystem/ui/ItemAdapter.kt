@@ -48,10 +48,20 @@ class ItemAdapter(
                 vb.layoutTags.addView(chip)
             }
 
-            val qtyText = Fmt.qtyWithUnit(item.quantity, item.unit)
+            val priceText = if (item.unit.isEmpty()) {
+                vb.root.context.getString(R.string.item_price_plain, Fmt.money(item.avgPrice))
+            } else {
+                vb.root.context.getString(R.string.item_price_unit, Fmt.money(item.avgPrice), item.unit)
+            }
+            val qtyText = Fmt.qtyWithUnit(item.quantity, item.unit) + " · " + priceText
             vb.textSpec.text = if (item.attrSummary.isEmpty()) qtyText
             else "$qtyText · ${item.attrSummary}"
-            vb.textDate.text = Fmt.date(item.createdAt)
+            val since = item.stockSince
+            vb.textDate.text = if (since == null) {
+                vb.root.context.getString(R.string.item_no_stock)
+            } else {
+                vb.root.context.getString(R.string.item_stock_days, Fmt.daysSince(since))
+            }
 
             val image = item.firstImage
             if (image != null) {

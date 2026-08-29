@@ -17,6 +17,7 @@ import com.example.stockmanagementsystem.data.Repository
 import com.example.stockmanagementsystem.databinding.ActivityMainBinding
 import com.example.stockmanagementsystem.ui.Dialogs
 import com.example.stockmanagementsystem.ui.ItemAdapter
+import com.example.stockmanagementsystem.util.Fmt
 import com.example.stockmanagementsystem.util.Insets
 import com.example.stockmanagementsystem.util.runInBackground
 import com.google.android.material.chip.Chip
@@ -34,6 +35,7 @@ class MainActivity : AppCompatActivity() {
     /** null 表示「全部」 */
     private var selectedCategoryId: Long? = null
     private var searchByTag = false
+    private var sortMode = ItemSort.DEFAULT
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -75,6 +77,10 @@ class MainActivity : AppCompatActivity() {
                 }
                 R.id.action_records -> {
                     startActivity(RecordListActivity.intent(this, warehouseId))
+                    true
+                }
+                R.id.action_sort -> {
+                    showSortMenu()
                     true
                 }
                 R.id.action_recycle_bin -> {
@@ -188,8 +194,42 @@ class MainActivity : AppCompatActivity() {
                 item.name.contains(q, ignoreCase = true)
             }
         }
-        adapter.submit(filtered)
+        adapter.submit(sortedOf(filtered))
         vb.textEmpty.visibility = if (filtered.isEmpty()) View.VISIBLE else View.GONE
+    }
+
+    /** 按当前排序模式排序；无库存（无在库起点）的在按天数排序时排最后 */
+    private fun sortedOf(list: List<ItemSummary>): List<ItemSummary> = when (sortMode) {
+        ItemSort.DEFAULT -> list
+        ItemSort.DAYS_DESC -> {
+            val now = System.currentTimeMillis()
+            list.sortedByDescending { it.stockSince?.let { s -> Fmt.daysSince(s, now) } ?: -1L }
+        }
+        ItemSort.DAYS_ASC -> {
+            val now = System.currentTimeMillis()
+            list.sortedBy { it.stockSince?.let { s -> Fmt.daysSince(s, now) } ?: Long.MAX_VALUE }
+        }
+    }
+
+    private fun showSortMenu() {
+        val byDefault = getString(R.string.sort_default)
+        val daysDesc = getString(R.string.sort_days_desc)
+        val daysAsc = getString(R.string.sort_days_asc)
+        PopupMenu(this, vb.toolbar).apply {
+            menu.add(byDefault)
+            menu.add(daysDesc)
+            menu.add(daysAsc)
+            setOnMenuItemClickListener { mi ->
+                sortMode = when (mi.title) {
+                    daysDesc -> ItemSort.DAYS_DESC
+                    daysAsc -> ItemSort.DAYS_ASC
+                    else -> ItemSort.DEFAULT
+                }
+                applyFilter()
+                true
+            }
+            show()
+        }
     }
 
     private fun showSearchModeMenu() {
@@ -293,4 +333,7 @@ class MainActivity : AppCompatActivity() {
         fun intent(context: Context, warehouseId: Long): Intent =
             Intent(context, MainActivity::class.java).putExtra(EXTRA_WAREHOUSE_ID, warehouseId)
     }
+
+    /** 物品列表排序：默认录入新→旧；或按在库天数 */
+    private enum class ItemSort { DEFAULT, DAYS_DESC, DAYS_ASC }
 }

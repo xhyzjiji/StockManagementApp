@@ -167,12 +167,12 @@ class Repository private constructor(context: Context) {
                      JOIN attribute_def ad3 ON ad3.id = av3.attribute_def_id
                     WHERE av3.item_id = i.id AND ad3.type = 'TAGS' AND av3.value <> ''
                     ORDER BY ad3.sort_order) AS tags,
-                  (SELECT av2.value
+                 (SELECT av2.value
                      FROM attribute_value av2
                      JOIN attribute_def ad2 ON ad2.id = av2.attribute_def_id
                     WHERE av2.item_id = i.id AND ad2.type = 'IMAGE' AND av2.value <> ''
                     ORDER BY ad2.sort_order LIMIT 1) AS image
-                 , i.category_id
+                 , i.category_id, i.avg_price, i.stock_since
            $fromAndWhere""",
             args
         ).use { c ->
@@ -187,6 +187,8 @@ class Repository private constructor(context: Context) {
                             quantity = c.getDouble(3),
                             createdAt = c.getLong(4),
                             attrSummary = c.getString(5).orEmpty(),
+                            avgPrice = c.getDouble(9),
+                            stockSince = if (c.isNull(10)) null else c.getLong(10),
                             tags = AttrOptions.decode(c.getString(6).orEmpty()),
                             firstImage = c.getString(7).takeIf { !it.isNullOrEmpty() },
                         )
@@ -208,7 +210,7 @@ class Repository private constructor(context: Context) {
     }
 
     fun getItem(itemId: Long): Item? = db.rawQuery(
-        "SELECT id, category_id, name, unit, quantity, avg_price, total_value, created_at FROM item WHERE id=? AND deleted_at IS NULL",
+        "SELECT id, category_id, name, unit, quantity, avg_price, total_value, stock_since, created_at FROM item WHERE id=? AND deleted_at IS NULL",
         arrayOf(itemId.toString())
     ).use { c -> if (c.moveToFirst()) c.toItem() else null }
 
@@ -468,15 +470,18 @@ class Repository private constructor(context: Context) {
             // 出库流水的金额 = 库存总价的实际扣减（出清时为全部剩余总价）
             val recordPrice = if (type == StockType.IN) StockMath.round2(totalPrice!!)
             else StockMath.round2(row.totalValue - valueAfter.totalValue)
+            val now = System.currentTimeMillis()
             db.update(
                 "item", ContentValues().apply {
                     put("quantity", after)
                     put("avg_price", valueAfter.avgPrice)
                     put("total_value", valueAfter.totalValue)
+                    // 在库起点：原库存为 0 的入库开始计时；出库出清则归零
+                    if (type == StockType.OUT && after < 1e-9) putNull("stock_since")
+                    else if (type == StockType.IN && before < 1e-9) put("stock_since", now)
                 }, "id=?",
                 arrayOf(itemId.toString())
             )
-            val now = System.currentTimeMillis()
             val recordId = db.insertOrThrow(
                 "stock_record", null,
                 ContentValues().apply {
@@ -542,7 +547,8 @@ class Repository private constructor(context: Context) {
         Warehouse(getLong(0), getString(1), getString(2), getLong(3))
 
     private fun Cursor.toItem() =
-        Item(getLong(0), getLong(1), getString(2), getString(3).orEmpty(), getDouble(4), getDouble(5), getDouble(6), getLong(7))
+        Item(getLong(0), getLong(1), getString(2), getString(3).orEmpty(), getDouble(4), getDouble(5), getDouble(6),
+            if (isNull(7)) null else getLong(7), getLong(8))
 
     private fun Cursor.toAttrDef() = AttributeDef(
         id = getLong(0),

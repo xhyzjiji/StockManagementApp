@@ -9,6 +9,7 @@ import java.util.Locale
 object Fmt {
     private val timeFormat = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
     private val dateFormat = SimpleDateFormat("yyyy/MM/dd", Locale.getDefault())
+    private const val DAY_MS = 24L * 60 * 60 * 1000
 
     /** 数量展示：去掉多余的 0，最多保留 3 位小数 */
     fun qty(value: Double): String =
@@ -26,6 +27,10 @@ object Fmt {
 
     /** 日期展示：2026/08/22 */
     fun date(millis: Long): String = dateFormat.format(Date(millis))
+
+    /** 在库天数：起点到当前的完整天数（当天入库为 0），起点在未来时按 0 计 */
+    fun daysSince(sinceMs: Long, nowMs: Long = System.currentTimeMillis()): Long =
+        (nowMs - sinceMs).coerceAtLeast(0) / DAY_MS
 
     /** 出入库后的库存计算，出库不允许为负 */
     fun computeAfter(before: Double, delta: Double, isIn: Boolean): Double {
