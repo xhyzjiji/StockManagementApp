@@ -5,6 +5,7 @@ import android.content.Intent
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
+import android.view.Gravity
 import android.view.View
 import android.widget.PopupMenu
 import android.widget.Toast
@@ -14,6 +15,8 @@ import androidx.recyclerview.widget.GridLayoutManager
 import com.example.stockmanagementsystem.data.Category
 import com.example.stockmanagementsystem.data.ItemSummary
 import com.example.stockmanagementsystem.data.Repository
+import com.example.stockmanagementsystem.data.StockMath
+import com.example.stockmanagementsystem.data.StockType
 import com.example.stockmanagementsystem.databinding.ActivityMainBinding
 import com.example.stockmanagementsystem.ui.Dialogs
 import com.example.stockmanagementsystem.ui.ItemAdapter
@@ -36,6 +39,8 @@ class MainActivity : AppCompatActivity() {
     private var selectedCategoryId: Long? = null
     private var searchByTag = false
     private var sortMode = ItemSort.DEFAULT
+    private var viewMode = ItemAdapter.ViewMode.LIST
+    private val prefs by lazy { getPreferences(MODE_PRIVATE) }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -54,8 +59,13 @@ class MainActivity : AppCompatActivity() {
             imageStore = repo.imageStore,
             onClick = { item -> startActivity(ItemDetailActivity.intent(this, item.id)) },
             onLongClick = { item -> showItemOps(item.id, item.categoryId, item.name) },
+            onStockIn = { item -> showQuickStockIn(item) },
         )
-        vb.recycler.layoutManager = GridLayoutManager(this, 2)
+        viewMode = prefs.getString(KEY_VIEW_MODE, null)
+            ?.let { runCatching { ItemAdapter.ViewMode.valueOf(it) }.getOrNull() }
+            ?: ItemAdapter.ViewMode.LIST
+        adapter.viewMode = viewMode
+        vb.recycler.layoutManager = GridLayoutManager(this, viewMode.spanCount)
         vb.recycler.adapter = adapter
 
         vb.btnSearchMode.setOnClickListener { showSearchModeMenu() }
@@ -81,6 +91,10 @@ class MainActivity : AppCompatActivity() {
                 }
                 R.id.action_sort -> {
                     showSortMenu()
+                    true
+                }
+                R.id.action_view -> {
+                    showViewMenu()
                     true
                 }
                 R.id.action_recycle_bin -> {
@@ -232,6 +246,30 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun showViewMenu() {
+        val toList = getString(R.string.view_list)
+        val toGrid = getString(R.string.view_grid)
+        val toThumb = getString(R.string.view_thumb)
+        // Toolbar 横跨整宽，END 对齐让弹窗落在右侧菜单按钮下方而不是页面左上角
+        PopupMenu(this, vb.toolbar, Gravity.END).apply {
+            menu.add(toList)
+            menu.add(toGrid)
+            menu.add(toThumb)
+            setOnMenuItemClickListener { mi ->
+                viewMode = when (mi.title) {
+                    toGrid -> ItemAdapter.ViewMode.GRID
+                    toThumb -> ItemAdapter.ViewMode.THUMB
+                    else -> ItemAdapter.ViewMode.LIST
+                }
+                adapter.viewMode = viewMode
+                (vb.recycler.layoutManager as? GridLayoutManager)?.spanCount = viewMode.spanCount
+                prefs.edit().putString(KEY_VIEW_MODE, viewMode.name).apply()
+                true
+            }
+            show()
+        }
+    }
+
     private fun showSearchModeMenu() {
         val byName = getString(R.string.search_mode_by_name)
         val byTag = getString(R.string.search_mode_by_tag)
@@ -252,6 +290,38 @@ class MainActivity : AppCompatActivity() {
     }
 
     // ---------------- 新建 ----------------
+
+    // ---------------- 快捷入库（单列视图 + 按钮） ----------------
+
+    /** 列表直接入库：与详情页同一套校验（必填总价；老库存未定价时先选计价方式） */
+    private fun showQuickStockIn(item: ItemSummary) {
+        Dialogs.stockOp(this, true, item.name, item.quantity, item.unit) { qty, price, note ->
+            if (item.quantity > 0 && item.totalValue <= 0.0) {
+                Dialogs.unpricedPricing(this, item.quantity, item.unit) { pricing, corrected ->
+                    doQuickStockIn(item.id, qty, price, note, pricing, corrected)
+                }
+            } else {
+                doQuickStockIn(item.id, qty, price, note, StockMath.InPricing.WEIGHTED, null)
+            }
+        }
+    }
+
+    private fun doQuickStockIn(
+        itemId: Long,
+        qty: Double,
+        price: Double?,
+        note: String,
+        pricing: StockMath.InPricing,
+        correctedValue: Double?,
+    ) {
+        runInBackground({
+            repo.applyStock(itemId, StockType.IN, qty, price, note, pricing, correctedValue)
+            Unit
+        }) {
+            Toast.makeText(this, R.string.stock_in_done, Toast.LENGTH_SHORT).show()
+            reload()
+        }
+    }
 
     /** 选中具体类目时直接建物品；「全部」时先选目标类目 */
     private fun showAddItemTargetPicker() {
@@ -329,6 +399,7 @@ class MainActivity : AppCompatActivity() {
 
     companion object {
         const val EXTRA_WAREHOUSE_ID = "extra_warehouse_id"
+        private const val KEY_VIEW_MODE = "item_view_mode"
 
         fun intent(context: Context, warehouseId: Long): Intent =
             Intent(context, MainActivity::class.java).putExtra(EXTRA_WAREHOUSE_ID, warehouseId)

@@ -19,6 +19,10 @@
         android:title="@string/menu_sort"
         app:showAsAction="never" />
     <item
+        android:id="@+id/action_view"
+        android:title="@string/menu_view"
+        app:showAsAction="never" />
+    <item
         android:id="@+id/action_rename_warehouse"
         android:title="@string/menu_rename_warehouse"
         app:showAsAction="never" />

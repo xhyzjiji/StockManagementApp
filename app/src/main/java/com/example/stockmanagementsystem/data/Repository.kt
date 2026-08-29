@@ -172,7 +172,7 @@ class Repository private constructor(context: Context) {
                      JOIN attribute_def ad2 ON ad2.id = av2.attribute_def_id
                     WHERE av2.item_id = i.id AND ad2.type = 'IMAGE' AND av2.value <> ''
                     ORDER BY ad2.sort_order LIMIT 1) AS image
-                 , i.category_id, i.avg_price, i.stock_since
+                 , i.category_id, i.avg_price, i.stock_since, i.total_value
            $fromAndWhere""",
             args
         ).use { c ->
@@ -189,6 +189,7 @@ class Repository private constructor(context: Context) {
                             attrSummary = c.getString(5).orEmpty(),
                             avgPrice = c.getDouble(9),
                             stockSince = if (c.isNull(10)) null else c.getLong(10),
+                            totalValue = c.getDouble(11),
                             tags = AttrOptions.decode(c.getString(6).orEmpty()),
                             firstImage = c.getString(7).takeIf { !it.isNullOrEmpty() },
                         )

@@ -71,6 +71,8 @@ data class ItemSummary(
     val quantity: Double,
     /** 平均单价（元/计量单位，两位小数） */
     val avgPrice: Double,
+    /** 剩余总价（元）；列表快捷入库时用它判断老库存是否已定价 */
+    val totalValue: Double,
     /** 当前这批库存的入库起点；无库存为 null */
     val stockSince: Long?,
     /** 标签（TAGS 类型属性的多选值，已拆好） */
