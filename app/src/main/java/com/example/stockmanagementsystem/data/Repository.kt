@@ -419,6 +419,7 @@ class Repository private constructor(context: Context) {
      * 事务化出入库：更新库存（含平均价与剩余总价）并写入流水。
      * 入库必须携带本次总价 [totalPrice]（元，最多两位小数）；
      * 老库存未定价时按 [pricing] 选择计价方式（CORRECT 需带老库存总价 [correctedValue]）。
+     * [occurredAt] 为入库的真实购买时间（可空，默认当前时间）。
      * 出库按当时平均价折算金额。出库超量时抛 [InsufficientStockException]。
      */
     fun applyStock(
@@ -429,6 +430,7 @@ class Repository private constructor(context: Context) {
         note: String,
         pricing: StockMath.InPricing = StockMath.InPricing.WEIGHTED,
         correctedValue: Double? = null,
+        occurredAt: Long? = null,
     ): StockRecord {
         require(quantity > 0) { "数量必须大于 0" }
         if (type == StockType.IN) {
@@ -471,7 +473,7 @@ class Repository private constructor(context: Context) {
             // 出库流水的金额 = 库存总价的实际扣减（出清时为全部剩余总价）
             val recordPrice = if (type == StockType.IN) StockMath.round2(totalPrice!!)
             else StockMath.round2(row.totalValue - valueAfter.totalValue)
-            val now = System.currentTimeMillis()
+            val now = occurredAt ?: System.currentTimeMillis()
             db.update(
                 "item", ContentValues().apply {
                     put("quantity", after)

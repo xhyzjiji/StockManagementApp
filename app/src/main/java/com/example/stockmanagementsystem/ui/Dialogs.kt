@@ -5,6 +5,7 @@ import android.text.InputType
 import android.view.LayoutInflater
 import android.view.View
 import android.widget.Toast
+import androidx.fragment.app.FragmentActivity
 import com.example.stockmanagementsystem.R
 import com.example.stockmanagementsystem.data.AttrOptions
 import com.example.stockmanagementsystem.data.AttrType
@@ -17,7 +18,13 @@ import com.example.stockmanagementsystem.databinding.DialogWarehouseBinding
 import com.example.stockmanagementsystem.util.Bitmaps
 import com.example.stockmanagementsystem.util.Fmt
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.google.android.material.datepicker.MaterialDatePicker
+import com.google.android.material.timepicker.MaterialTimePicker
+import com.google.android.material.timepicker.MaterialTimePicker.INPUT_MODE_CLOCK
+import com.google.android.material.timepicker.TimeFormat
 import java.io.File
+import java.util.Calendar
+import java.util.TimeZone
 
 object Dialogs {
 
@@ -163,14 +170,14 @@ object Dialogs {
         MaterialAlertDialogBuilder(context).setView(vb.root).show()
     }
 
-    /** 入库/出库弹窗：onOk(数量, 入库总价, 备注)，入库必填总价（出库传 null），出库在弹窗层先做超量校验 */
+    /** 入库/出库弹窗：onOk(数量, 入库总价, 购买/操作时间, 备注)；入库必填总价与可选购买时间，出库相关字段为 null */
     fun stockOp(
         context: Context,
         isIn: Boolean,
         itemName: String,
         currentQty: Double,
         unit: String,
-        onOk: (Double, Double?, String) -> Unit,
+        onOk: (Double, Double?, Long?, String) -> Unit,
     ) {
         val vb = DialogStockOpBinding.inflate(LayoutInflater.from(context))
         vb.textCurrent.text =
@@ -179,6 +186,17 @@ object Dialogs {
             vb.layoutQty.hint = context.getString(R.string.stock_qty_hint_with_unit, unit)
         }
         vb.layoutPrice.visibility = if (isIn) View.VISIBLE else View.GONE
+        vb.layoutTime.visibility = if (isIn) View.VISIBLE else View.GONE
+
+        // 入库可选真实购买时间；不选则为 null（提交时按当前时间）
+        var pickedAt: Long? = null
+        vb.inputTime.setOnClickListener {
+            pickDateTime(context, pickedAt) { picked ->
+                pickedAt = picked
+                vb.inputTime.setText(Fmt.time(picked))
+            }
+        }
+
         val dialog = MaterialAlertDialogBuilder(context)
             .setTitle(
                 context.getString(
@@ -211,8 +229,39 @@ object Dialogs {
                 null
             }
             dialog.dismiss()
-            onOk(qty, price, vb.inputNote.text?.toString()?.trim().orEmpty())
+            onOk(qty, price, if (isIn) pickedAt else null, vb.inputNote.text?.toString()?.trim().orEmpty())
         }
+    }
+
+    /** 日期 + 时间两级选择；结果不晚于当前时间 */
+    private fun pickDateTime(context: Context, initial: Long?, onPicked: (Long) -> Unit) {
+        val fm = (context as? FragmentActivity)?.supportFragmentManager ?: return
+        val datePicker = MaterialDatePicker.Builder.datePicker()
+            .setSelection(initial ?: System.currentTimeMillis())
+            .build()
+        datePicker.addOnPositiveButtonClickListener { dateSel ->
+            val timePicker = MaterialTimePicker.Builder()
+                .setTimeFormat(TimeFormat.CLOCK_24H)
+                .setInputMode(INPUT_MODE_CLOCK)
+                .build()
+            timePicker.addOnPositiveButtonClickListener {
+                // 日期选择给的是 UTC 零点，转回本地日历再拼上时分
+                val utc = Calendar.getInstance(TimeZone.getTimeZone("UTC")).apply {
+                    timeInMillis = dateSel
+                }
+                val local = Calendar.getInstance().apply {
+                    set(
+                        utc.get(Calendar.YEAR), utc.get(Calendar.MONTH),
+                        utc.get(Calendar.DAY_OF_MONTH),
+                        timePicker.hour, timePicker.minute, 0,
+                    )
+                    set(Calendar.MILLISECOND, 0)
+                }
+                onPicked(local.timeInMillis.coerceAtMost(System.currentTimeMillis()))
+            }
+            timePicker.show(fm, "stock_time")
+        }
+        datePicker.show(fm, "stock_date")
     }
 
     /**

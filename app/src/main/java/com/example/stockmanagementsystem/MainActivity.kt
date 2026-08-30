@@ -299,13 +299,13 @@ class MainActivity : AppCompatActivity() {
 
     /** 列表直接入库：与详情页同一套校验（必填总价；老库存未定价时先选计价方式） */
     private fun showQuickStockIn(item: ItemSummary) {
-        Dialogs.stockOp(this, true, item.name, item.quantity, item.unit) { qty, price, note ->
+        Dialogs.stockOp(this, true, item.name, item.quantity, item.unit) { qty, price, at, note ->
             if (item.quantity > 0 && item.totalValue <= 0.0) {
                 Dialogs.unpricedPricing(this, item.quantity, item.unit) { pricing, corrected ->
-                    doQuickStockIn(item.id, qty, price, note, pricing, corrected)
+                    doQuickStockIn(item.id, qty, price, at, note, pricing, corrected)
                 }
             } else {
-                doQuickStockIn(item.id, qty, price, note, StockMath.InPricing.WEIGHTED, null)
+                doQuickStockIn(item.id, qty, price, at, note, StockMath.InPricing.WEIGHTED, null)
             }
         }
     }
@@ -314,12 +314,13 @@ class MainActivity : AppCompatActivity() {
         itemId: Long,
         qty: Double,
         price: Double?,
+        at: Long?,
         note: String,
         pricing: StockMath.InPricing,
         correctedValue: Double?,
     ) {
         runInBackground({
-            repo.applyStock(itemId, StockType.IN, qty, price, note, pricing, correctedValue)
+            repo.applyStock(itemId, StockType.IN, qty, price, note, pricing, correctedValue, at)
             Unit
         }) {
             Toast.makeText(this, R.string.stock_in_done, Toast.LENGTH_SHORT).show()

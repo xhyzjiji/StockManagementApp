@@ -152,14 +152,14 @@ class ItemDetailActivity : AppCompatActivity() {
 
     private fun showStockDialog(isIn: Boolean) {
         val d = detail ?: return
-        Dialogs.stockOp(this, isIn, d.item.name, d.item.quantity, d.item.unit) { qty, price, note ->
+        Dialogs.stockOp(this, isIn, d.item.name, d.item.quantity, d.item.unit) { qty, price, at, note ->
             // 老库存未定价（有库存但总价为 0）的入库，先让用户选计价方式
             if (isIn && d.item.quantity > 0 && d.item.totalValue <= 0.0) {
                 Dialogs.unpricedPricing(this, d.item.quantity, d.item.unit) { pricing, corrected ->
-                    doStockOp(isIn, qty, price, note, pricing, corrected)
+                    doStockOp(isIn, qty, price, at, note, pricing, corrected)
                 }
             } else {
-                doStockOp(isIn, qty, price, note, StockMath.InPricing.WEIGHTED, null)
+                doStockOp(isIn, qty, price, at, note, StockMath.InPricing.WEIGHTED, null)
             }
         }
     }
@@ -168,6 +168,7 @@ class ItemDetailActivity : AppCompatActivity() {
         isIn: Boolean,
         qty: Double,
         price: Double?,
+        at: Long?,
         note: String,
         pricing: StockMath.InPricing,
         correctedValue: Double?,
@@ -177,7 +178,7 @@ class ItemDetailActivity : AppCompatActivity() {
             val error = try {
                 repo.applyStock(
                     itemId, if (isIn) StockType.IN else StockType.OUT, qty, price, note,
-                    pricing, correctedValue,
+                    pricing, correctedValue, at,
                 )
                 null
             } catch (e: InsufficientStockException) {

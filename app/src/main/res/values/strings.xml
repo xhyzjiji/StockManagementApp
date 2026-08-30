@@ -130,6 +130,7 @@
     <string name="stock_price_hint">本次入库总价（元）</string>
     <string name="stock_price_required">请输入本次入库总价，最多两位小数</string>
     <string name="stock_price_line">均价 ¥%1$s · 剩余总价 ¥%2$s</string>
+    <string name="stock_time_hint">购买时间（可选，默认当前时间）</string>
     <string name="pricing_title">老库存尚未定价</string>
     <string name="pricing_message">当前库存 %1$s 还没有价格，请选择本次入库的计价方式</string>
     <string name="pricing_first_price">按首次定价（整批库存按本次单价）</string>
