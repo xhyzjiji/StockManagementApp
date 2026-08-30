@@ -1,8 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Base.Theme.StockManagementSystem" parent="Theme.Material3.DayNight.NoActionBar">
+    <!-- 界面颜色均为浅色设计：深色模式下也强制浅色，避免背景变黑、白字配米黄底 -->
+    <style name="Base.Theme.StockManagementSystem" parent="Theme.Material3.Light.NoActionBar">
         <item name="colorPrimary">@color/primary</item>
         <item name="colorPrimaryVariant">@color/primary_dark</item>
         <item name="colorSecondary">@color/accent</item>
+        <item name="android:windowBackground">@color/app_bg</item>
     </style>
 </resources>
