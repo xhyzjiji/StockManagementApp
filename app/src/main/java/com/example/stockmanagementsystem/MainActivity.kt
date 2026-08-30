@@ -9,6 +9,7 @@ import android.view.Gravity
 import android.view.View
 import android.widget.PopupMenu
 import android.widget.Toast
+import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.GridLayoutManager
@@ -41,6 +42,7 @@ class MainActivity : AppCompatActivity() {
     private var sortMode = ItemSort.DEFAULT
     private var viewMode = ItemAdapter.ViewMode.LIST
     private val prefs by lazy { getPreferences(MODE_PRIVATE) }
+    private lateinit var backCallback: OnBackPressedCallback
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -58,9 +60,18 @@ class MainActivity : AppCompatActivity() {
         adapter = ItemAdapter(
             imageStore = repo.imageStore,
             onClick = { item -> startActivity(ItemDetailActivity.intent(this, item.id)) },
-            onLongClick = { item -> showItemOps(item.id, item.categoryId, item.name) },
+            onLongClick = { item ->
+                if (!adapter.selectionMode) adapter.startSelection(item.id)
+            },
             onStockIn = { item -> showQuickStockIn(item) },
         )
+        adapter.onSelectionCountChanged = { count -> updateSelectionUi(count) }
+        backCallback = object : OnBackPressedCallback(false) {
+            override fun handleOnBackPressed() = adapter.stopSelection()
+        }
+        onBackPressedDispatcher.addCallback(this, backCallback)
+        vb.btnCancelSelection.setOnClickListener { adapter.stopSelection() }
+        vb.btnDeleteSelected.setOnClickListener { deleteSelected() }
         viewMode = prefs.getString(KEY_VIEW_MODE, null)
             ?.let { runCatching { ItemAdapter.ViewMode.valueOf(it) }.getOrNull() }
             ?: ItemAdapter.ViewMode.LIST
@@ -359,21 +370,30 @@ class MainActivity : AppCompatActivity() {
 
     // ---------------- 长按操作 ----------------
 
-    private fun showItemOps(itemId: Long, categoryId: Long, name: String) {
-        AlertDialog.Builder(this)
-            .setTitle(name)
-            .setItems(arrayOf(getString(R.string.action_edit), getString(R.string.action_delete))) { _, which ->
-                when (which) {
-                    0 -> startActivity(ItemEditActivity.editIntent(this, itemId, categoryId))
-                    1 -> Dialogs.confirm(this, getString(R.string.item_delete_confirm, name)) {
-                        runInBackground({ repo.softDeleteItem(itemId) }) {
-                            Toast.makeText(this, R.string.moved_to_bin, Toast.LENGTH_SHORT).show()
-                            reload()
-                        }
-                    }
-                }
+    // ---------------- 多选删除 ----------------
+
+    /** count >= 0 表示处于多选模式 */
+    private fun updateSelectionUi(count: Int) {
+        val selecting = count >= 0
+        vb.selectionBar.visibility = if (selecting) View.VISIBLE else View.GONE
+        vb.fabAdd.visibility = if (selecting) View.GONE else View.VISIBLE
+        backCallback.isEnabled = selecting
+        if (selecting) {
+            vb.textSelectedCount.text = getString(R.string.selection_count, count)
+            vb.btnDeleteSelected.isEnabled = count > 0
+        }
+    }
+
+    private fun deleteSelected() {
+        val ids = adapter.selectedIds()
+        if (ids.isEmpty()) return
+        Dialogs.confirm(this, getString(R.string.item_batch_delete_confirm, ids.size)) {
+            runInBackground({ ids.forEach { repo.softDeleteItem(it) }; Unit }) { _ ->
+                Toast.makeText(this, R.string.moved_to_bin, Toast.LENGTH_SHORT).show()
+                adapter.stopSelection()
+                reload()
             }
-            .show()
+        }
     }
 
     private fun showCategoryOps(id: Long, name: String) {

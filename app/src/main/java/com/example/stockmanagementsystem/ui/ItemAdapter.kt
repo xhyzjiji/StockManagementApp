@@ -14,6 +14,7 @@ import com.example.stockmanagementsystem.data.ItemSummary
 import com.example.stockmanagementsystem.util.Bitmaps
 import com.example.stockmanagementsystem.util.Fmt
 import com.example.stockmanagementsystem.util.TagColors
+import com.google.android.material.card.MaterialCardView
 
 /**
  * 物品列表卡片，支持三种视图：
@@ -36,7 +37,43 @@ class ItemAdapter(
             notifyDataSetChanged()
         }
 
+    /** 多选删除模式：长按进入，点按切换选中；[onSelectionCountChanged] 回调选中数（退出时收到 -1） */
+    var selectionMode = false
+        private set
+    private val selected = LinkedHashSet<Long>()
+    var onSelectionCountChanged: ((Int) -> Unit)? = null
+
     private val data = ArrayList<ItemSummary>()
+
+    /** 进入多选并选中第一项 */
+    fun startSelection(firstId: Long) {
+        selectionMode = true
+        selected.clear()
+        selected.add(firstId)
+        notifyDataSetChanged()
+        notifyCount()
+    }
+
+    /** 退出多选并清空选中 */
+    fun stopSelection() {
+        if (!selectionMode) return
+        selectionMode = false
+        selected.clear()
+        notifyDataSetChanged()
+        notifyCount()
+    }
+
+    fun selectedIds(): List<Long> = selected.toList()
+
+    private fun toggleSelection(id: Long) {
+        if (!selected.remove(id)) selected.add(id)
+        notifyDataSetChanged()
+        notifyCount()
+    }
+
+    private fun notifyCount() {
+        onSelectionCountChanged?.invoke(if (selectionMode) selected.size else -1)
+    }
 
     fun submit(list: List<ItemSummary>) {
         data.clear()
@@ -117,8 +154,19 @@ class ItemAdapter(
                 imageThumb.setImageDrawable(null)
             }
             btnStockIn?.setOnClickListener { onStockIn(item) }
-            itemView.setOnClickListener { onClick(item) }
-            itemView.setOnLongClickListener { onLongClick(item); true }
+            // 多选模式：主色描边标记选中；点按/长按均为切换选中
+            val card = itemView as MaterialCardView
+            val isSelected = selectionMode && selected.contains(item.id)
+            card.strokeWidth =
+                if (isSelected) (2f * ctx.resources.displayMetrics.density).toInt() else 0
+            card.strokeColor = ctx.getColor(R.color.primary)
+            itemView.setOnClickListener {
+                if (selectionMode) toggleSelection(item.id) else onClick(item)
+            }
+            itemView.setOnLongClickListener {
+                if (selectionMode) toggleSelection(item.id) else onLongClick(item)
+                true
+            }
         }
     }
 }
