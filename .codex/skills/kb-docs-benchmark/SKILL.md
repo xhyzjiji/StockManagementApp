@@ -771,6 +771,7 @@ Use this mode after `benchmark.json` has been generated. It explains why the doc
 ```json
 {
   "summary": "Short explanation of current docs quality.",
+  "overall_recommendation": "先补 workflow.md 的 adapter 交接（q1 就栽在这），其余是同一处措辞问题，可以一起改掉。",
   "suggestions": [
     {
       "priority": "high",

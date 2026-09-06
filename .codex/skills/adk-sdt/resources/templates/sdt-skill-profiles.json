@@ -1,0 +1,57 @@
+{
+  "version": 1,
+  "notes": [
+    "Mobile SDT skill profiles. End users should NOT need to know any skill name.",
+    "SDT resolves a domain from spec/repo signals, picks a profile, then maps logical capabilities to concrete skill names. Resolution must use the current host's skill mechanism; a plugin-namespaced variant of the same skill (e.g. `infra-ios:harness-workflow`) counts as resolved — try the bare name first, then the entries in *_ALIASES.",
+    "TEXT_CASE_GENERATE is the mobile spec2case skill used to generate test/case.md (default: `ui-md-case-gen` from the tt-nova-ui package, VENDORED inside mobile-core at skills/tt-nova-ui — delivered with the plugin, no remote fetch; INSTALL is intentionally EMPTY, which disables lazy install). A failing probe means the bundled copy did not reach the project (reinstall/update mobile-core), never a reason to install from the network. It is OPTIONAL (TEXT_CASE_GENERATE_OPTIONAL=true): when resolvable, adk-sdt-ff delegates to it and passes sdt-case-template.md as the output format contract; when missing, adk-sdt-ff authors test/case.md itself from spec/plan. Optional capabilities never trigger the missing-skill error.",
+    "VERIFY_WORKFLOW is the platform verification workflow that owns build + lint + E2E execution AND its internal fix loops (verify-loop 小循环在 workflow 内部闭环，不外抛确认). It consumes FEATURE_DIR/test/case.md as its spec input. This is the ONLY platform fork point in the whole Mobile SDT workflow.",
+    "Android VERIFY_WORKFLOW: the `infra-android` plugin ships its own `harness-workflow` skill (a TypeScript step-machine — `next` / `submit` / `final` / `loop`), which is a DIFFERENT implementation from the iOS one that happens to share the skill name. Both ends agreed to align at the SKILL.md level (the consumer is an Agent, so the translation happens when it reads SKILL.md): T002 hands the task Input over as an execution CONFIG and each end's SKILL.md maps it to its own flags. Do NOT compose iOS-shaped CLI flags for Android — its arg parser hard-stops on unknown flags. Same-name skills on a host that has both plugins: try the bare name first, then `infra-android:harness-workflow` from *_ALIASES. See adk-sdt/README.md § Android 接入.",
+    "`mobile-ai-test` (`@tiktok-android-arch/mobile-ai-test`) is the executor pinned inside the Android harness-workflow skill (see its package.json `pinned_dependencies`); `ai-test-orchestrator` is a skill shipped inside that package. Neither is something SDT calls directly — the Android harness owns them.",
+    "DEFAULT_AGENT_PROVIDER / DEFAULT_MODEL are the remote-agent knobs adk-sdt-ff writes into task.md's Input rows `remote_agent_provider` / `remote_model` when the user did not ask for one. They are DEFAULTS, not a fork — T002 still just hands the Input over as a config, and an empty string means \"do not pass this one, let the verification workflow use its own default\". A NON-empty default is not optional for ff: with execution_mode = remote-agent, leaving such a row blank is a generation bug (implement T002 fills it back from here before handing over). Android pins DEFAULT_AGENT_PROVIDER=ttadk because the container platform's own gateway reroutes a long session to a different model mid-run, and that model's function-calling rejects the claude-code tool schema — every tool call after the switch is rejected while the report still looks normal. Android's DEFAULT_MODEL is a model FAMILY (`gpt`), not a concrete id: the Android harness's built-in provider resolves it inside the container against the models that identity can actually use (highest version of that family), so the pin does not go stale when a newer model ships; the concrete id lands in its report. Only write a family name here for a platform whose verification workflow says it accepts one. iOS leaves all three empty (its MVP shape is local).",
+    "REPORT_GENERATE empty means adk-sdt-implement fills sdt-report-template.md inline from the verification workflow's artifacts.",
+    "DEFAULT_EXECUTION_MODE is the execution_mode adk-sdt-ff writes into task.md's Input table when the user did not ask for one. It is a DEFAULT, not a fork: nothing downstream reads the platform to decide anything — T002 still just hands the Input over as a config. **Dispatching must be asked for, on either platform — never inferred.** Android's verification CAN run in an airb container that brings its own emulator (needing neither a local device nor a local build), but that costs a container slot, ten-odd minutes, and a container-side toolchain that has to be in place first — nobody should pay that without saying so. A local run that cannot work fails immediately and for free (no device -> it stops at the pre-flight check); a remote run that should have been local has already spent everything by the time you see it. Say `execution_mode: remote-agent`, or tell the agent in words, to dispatch.",
+    "TEXT_CASE_GENERATE_INSTALL / TEXT_CASE_GENERATE_PROBE: lazy-install contract for the optional case-gen skill. adk-sdt-ff probes PROBE (a FILE, not a dir); when missing it runs INSTALL once from the repo root, re-probes, and either delegates or falls back to self-authoring. Empty INSTALL disables lazy install for that platform.",
+    "There is no dev-skill-sync knob on either platform, and do not reintroduce one. It asked the caller a question the caller cannot answer (\"am I changing the verification workflow itself?\"), which is why it needed a never-set-it-yourself rule downstream. Android's verification workflow now always pushes the caller's copy into its container, so nothing here has to say anything about where that copy comes from."
+  ],
+  "defaultProfile": "mobile",
+  "domains": {
+    "unknown": {
+      "profile": "mobile"
+    },
+    "default": {
+      "profile": "mobile"
+    }
+  },
+  "profiles": {
+    "mobile": {
+      "ios": {
+        "TEXT_CASE_GENERATE": "ui-md-case-gen",
+        "TEXT_CASE_GENERATE_OPTIONAL": true,
+        "TEXT_CASE_GENERATE_INSTALL": "",
+        "TEXT_CASE_GENERATE_PROBE": ".claude/skills/tt-nova-ui/ui-md-case-gen/SKILL.md",
+        "VERIFY_WORKFLOW": "harness-workflow",
+        "VERIFY_WORKFLOW_ALIASES": [
+          "infra-ios:harness-workflow"
+        ],
+        "DEFAULT_EXECUTION_MODE": "local",
+        "DEFAULT_AGENT_PROVIDER": "",
+        "DEFAULT_MODEL": "",
+        "REPORT_GENERATE": ""
+      },
+      "android": {
+        "TEXT_CASE_GENERATE": "ui-md-case-gen",
+        "TEXT_CASE_GENERATE_OPTIONAL": true,
+        "TEXT_CASE_GENERATE_INSTALL": "",
+        "TEXT_CASE_GENERATE_PROBE": ".claude/skills/tt-nova-ui/ui-md-case-gen/SKILL.md",
+        "VERIFY_WORKFLOW": "harness-workflow",
+        "VERIFY_WORKFLOW_ALIASES": [
+          "infra-android:harness-workflow"
+        ],
+        "DEFAULT_EXECUTION_MODE": "local",
+        "DEFAULT_AGENT_PROVIDER": "ttadk",
+        "DEFAULT_MODEL": "gpt",
+        "REPORT_GENERATE": ""
+      }
+    }
+  }
+}

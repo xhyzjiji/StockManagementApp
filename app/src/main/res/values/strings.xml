@@ -13,9 +13,9 @@
     <string name="home_subtitle">管好材料库，记录每一次创作</string>
     <string name="home_goto_warehouse">进入我的仓库</string>
     <string name="home_features_title">功能模块</string>
-    <string name="home_features_body">【我的仓库 · 已上线】\n· 「仓库-类目-物品」三级组织，支持多仓库\n· 仓库级自定义属性（全仓库共用）：文本 / 数字 / 单选 / 标签 / 图片\n· 物品标签多选 + 彩色标签卡片\n· 计量单位自定义（件、米、㎡、公斤…）\n· 出入库操作与完整流水记录\n· 列表支持按名称 / 按标签搜索\n\n【我的作品 · 开发中】\n陈列你的成品，与材料库关联\n\n【创作灵感 · 开发中】\n收集灵感，随手记录</string>
+    <string name="home_features_body">【我的仓库 · 已上线】\n· 「仓库-类目-物品」三级组织，支持多仓库\n· 仓库级自定义属性（全仓库共用）：文本 / 数字 / 单选 / 标签 / 图片\n· 物品标签多选 + 彩色标签卡片\n· 计量单位自定义（件、米、㎡、公斤…）\n· 出入库操作与完整流水记录\n· 列表支持按名称 / 按标签搜索\n· 按仓库导入 / 导出数据包，同名冲突一键处理\n\n【我的作品 · 开发中】\n陈列你的成品，与材料库关联\n\n【创作灵感 · 开发中】\n收集灵感，随手记录</string>
     <string name="home_manual_title">「我的仓库」使用说明书</string>
-    <string name="home_manual_body">1. 底部切到「我的仓库」，右下角新建仓库\n2. 点进仓库直达物品总览，顶部「＋ 新建类目」建类目\n3. 右上菜单「属性设置」统一定义属性，全仓库物品共用（标签候选也在这里）\n4. 右下角添加物品，填名称、单位，勾选标签\n5. 点进物品详情，点「入库 / 出库」记流水\n6. 物品长按可编辑或删除，类目长按可改名/删除；详情流水超 5 条点「查看全部」翻页\n7. 删除的仓库/物品先进入回收站（对应页面右上角图标），可恢复；在回收站内才是彻底删除</string>
+    <string name="home_manual_body">1. 底部切到「我的仓库」，右下角新建仓库\n2. 点进仓库直达物品总览，顶部「＋ 新建类目」建类目\n3. 右上菜单「属性设置」统一定义属性，全仓库物品共用（标签候选也在这里）\n4. 右下角添加物品，填名称、单位，勾选标签\n5. 点进物品详情，点「入库 / 出库」记流水\n6. 物品长按可编辑或删除，类目长按可改名/删除；详情流水超 5 条点「查看全部」翻页\n7. 删除的仓库/物品先进入回收站（对应页面右上角图标），可恢复；在回收站内才是彻底删除\n8. 仓库列表长按卡片可导出数据包（自选保存位置，回收站数据不带走）；右上角「导入」选数据包恢复，同名仓库可选保留两者（自动改名）/ 覆盖 / 取消</string>
 
     <!-- 通用 -->
     <string name="action_ok">确定</string>
@@ -45,6 +45,22 @@
     <string name="category_item_count">%1$d 种物品</string>
     <string name="menu_records">出入库记录</string>
     <string name="recycle_bin">回收站</string>
+
+    <!-- 数据导入导出 -->
+    <string name="menu_import">导入</string>
+    <string name="action_export">导出</string>
+    <string name="export_done">已导出「%1$s」</string>
+    <string name="export_failed">导出失败：%1$s</string>
+    <string name="import_bad_file">文件无法识别，请选择本应用导出的仓库数据包</string>
+    <string name="import_failed">导入失败：%1$s</string>
+    <string name="import_conflict_title">同名仓库冲突</string>
+    <string name="import_conflict_message">已存在同名仓库「%1$s」，请选择处理方式：</string>
+    <string name="import_keep_both">保留两者（自动改名为「%1$s」导入）</string>
+    <string name="import_overwrite">覆盖同名仓库（原仓库移入回收站）</string>
+    <string name="import_cancel">取消导入</string>
+    <string name="import_done">已导入「%1$s」：%2$d 个类目、%3$d 件物品、%4$d 条流水</string>
+    <string name="import_missing_images">，%1$d 张参考图缺失</string>
+    <string name="import_overwritten_note">，原仓库已移入回收站</string>
     <string name="recycle_warehouse_title">仓库回收站</string>
     <string name="recycle_item_title">物品回收站</string>
     <string name="recycle_bin_empty">回收站是空的</string>

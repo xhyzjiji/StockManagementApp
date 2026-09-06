@@ -97,6 +97,17 @@ bytedcli --json meego workitem list --project-key __auth_check__ 2>&1
 
 > bytedcli here **only checks Meego**: no SSO / Codebase JWT / BITS link checks anymore.
 
+#### tt-nova-ui (Mobile SDT optional — `ui-md-case-gen` delegate for `adk-sdt-ff`)
+
+```bash
+command -v agentbuddy 2>&1 || ls "$HOME"/.nvm/versions/node/*/bin/agentbuddy 2>/dev/null | head -1
+ls .claude/skills/tt-nova-ui/ui-md-case-gen/SKILL.md 2>&1
+```
+
+> **Optional semantics**: missing tt-nova-ui never blocks readiness — `adk-sdt-ff` lazily installs it on
+> first use, and self-authors cases if that fails. Report it as ⚠️ enhancement, not ❌; fixing it here just
+> front-loads the install.
+
 ### A1. Summarize status
 
 Output the following table to the user, then proceed to fixing:
@@ -113,6 +124,7 @@ Output the following table to the user, then proceed to fixing:
 | bitscli | Codebase auth | ✅ logged in / ❌ not logged in / — skipped (not installed) |
 | bytedcli | install | ✅ v1.x.x / ❌ not installed |
 | bytedcli | Meego auth | ✅ logged in / ❌ not logged in / — skipped (not installed) |
+| tt-nova-ui | SDT case-gen (optional) | ✅ installed / ⚠️ not installed (sdt:ff self-authors) |
 
 ## Items to fix (execute in order)
 1. …
@@ -129,8 +141,10 @@ Output the following table to the user, then proceed to fixing:
 | bitscli Codebase auth | `bitscli codebase auth status` shows authenticated (with Username) |
 | bytedcli install | `bytedcli --version` succeeds |
 | bytedcli Meego auth | `meego workitem list` returns `error.code` != `MEEGO_AUTH_REQUIRED` |
+| tt-nova-ui (optional) | `.claude/skills/tt-nova-ui/ui-md-case-gen/SKILL.md` exists in the project — ⚠️ when missing, NEVER ❌ (does not affect readiness) |
 
-All CLIs ✅ → skip A2, proceed to Stage B (if the route includes it).
+All CLIs ✅ → skip A2, proceed to Stage B (if the route includes it). A ⚠️ on tt-nova-ui alone
+does NOT block Stage B; offer its fix only when the user wants delegated case generation.
 
 ### A2. Fix in order
 
@@ -163,6 +177,18 @@ _jwt=$(npx --registry=https://bnpm.byted.org -y skills get-codebase-jwt 2>/dev/n
 ```
 
 Retest: `bitscli codebase auth status` — output containing `Username` means pass.
+
+#### tt-nova-ui (optional — used for delegated SDT case generation)
+
+`tt-nova-ui` is vendored inside mobile-core and ships with the plugin — a missing copy means the
+plugin install is incomplete, not that anything needs fetching:
+
+```bash
+ttadk plugin update ttadk/mobile-core
+```
+
+Retest: `[ -s .claude/skills/tt-nova-ui/ui-md-case-gen/SKILL.md ]` → pass. Skipping this fix
+is always acceptable (`adk-sdt-ff` self-authors cases without it).
 
 #### bytedcli (Meego only)
 

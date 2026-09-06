@@ -316,6 +316,24 @@ ALLOWED_DOC_BASENAMES = {
     "architecture.md", "CLAUDE.md", "AGENTS.md",
 }
 
+# Opt-in extension (`--allow-evals`): a distillation run refreshes a root's evals
+# suite in the same run that updates its docs, so the suite must survive the gate.
+# Docs and evals describe the same knowledge; letting them drift apart is what
+# produces a fake-green benchmark.
+#
+# 🔴 Deliberately matched by PATH SHAPE, not by basename. A bare `evals.json`
+# allow-entry would admit the file anywhere in the tree; the suite has exactly one
+# legal home per doc root, and anything calling itself evals.json elsewhere is the
+# kind of stray write this gate exists to revert. Keep the hole the exact size of
+# the thing that needs to fit through it.
+EVALS_SUITE_SUFFIX = "docs/evals/evals.json"
+
+
+def _is_chain_evals_path(rel: str) -> bool:
+    """True for `<doc root>/docs/evals/evals.json` (POSIX-normalised)."""
+    norm = rel.replace("\\", "/")
+    return norm == EVALS_SUITE_SUFFIX or norm.endswith("/" + EVALS_SUITE_SUFFIX)
+
 
 def _rels(roots: Iterable[Path], repo: Path) -> list[str]:
     return [str(p.relative_to(repo)) if p.is_relative_to(repo) else str(p) for p in roots]
@@ -986,6 +1004,116 @@ def eval_add_signal(args: argparse.Namespace) -> int:
     return 0
 
 
+def eval_bootstrap_signal(args: argparse.Namespace) -> int:
+    """evals-update v2 — the third gate: a doc root that has NO evals suite at all.
+
+    The freshness gate keeps an existing suite honest; the coverage gate adds a
+    question to an existing suite. Both walk ancestors by *evals presence*, so a
+    root with no suite is not merely rejected — it is never even visited
+    (`_changed_evals_roots` only records a dir when `evals_blob(d) is not None`).
+    That leaves the single most common production shape completely untested:
+    **docs exist, evals never did**. The whole chain then reports `no_evals` and
+    scores nothing, which reads on a dashboard exactly like "benchmark is broken".
+
+    Candidate = the conjunction of three things, none of them optional:
+      1. THIS run actually updated that root's docs — same trigger as the
+         coverage gate. A new symbol whose knowledge the distillation judged not
+         doc-worthy does not deserve an eval either.
+      2. The root ships NO `docs/evals/evals.json` at `head` — if it has one,
+         this is the other two gates' business, not ours (reported under
+         `skipped_have_suite` so the hand-off is visible, never silent).
+      3. This MR introduced at least one genuinely new symbol under it — same
+         token extraction, same base-existence check, same per-root cap as the
+         coverage gate.
+
+    🔴 The candidate roots come in on `--roots`, from the caller. This tool does
+    NOT re-derive "what counts as a doc root". The existing ancestor walk finds
+    its way by asking "is there an evals suite here?" — the exact question that
+    is false by construction here. Re-deriving it would mean a SECOND definition
+    of "doc root" living in a second place, and the two would drift; the card-fold
+    bug of 2026-08-25 was precisely that shape (a predicate keyed on a proxy that
+    a new path quietly falsified). The skill already knows the answer exactly: it
+    just edited those directories.
+
+    Output JSON: {"base","head","checked_roots","skipped_have_suite",
+      "no_new_symbols","unknown_roots":[roots absent at head],
+      "capped_roots","bootstrap_candidates":[{"root","new_symbols","changed_files"}...]}.
+    Authoring, discrimination and the write itself all live in SKILL.md — this
+    stage stays zero-model and writes nothing."""
+    repo = _repo_from_args(args)
+    base, head = args.base, args.head
+
+    roots: list[str] = []
+    for raw in (args.roots or "").split(","):
+        r = raw.strip().strip("/")
+        if r and r not in roots:
+            roots.append(r)
+
+    changed = [ln for ln in _git_lines(repo, *_GIT_GATE_CFG, "diff",
+                                       *_GIT_DIFF_FLAGS, "--name-only", base, head)
+               if ln.strip()]
+
+    checked_roots: list[str] = []
+    skipped_have_suite: list[str] = []
+    no_new_symbols: list[str] = []
+    unknown_roots: list[str] = []
+    capped: list[str] = []
+    bootstrap: list[dict] = []
+
+    for root in roots:
+        # A root that does not exist at head is a caller mistake (wrong ref /
+        # stale plan), not "nothing to do" — surface it instead of returning a
+        # quiet empty result that reads like a clean bill of health.
+        if _ref_blob(repo, head, root + "/CLAUDE.md") is None and \
+                not _git_lines(repo, *_GIT_GATE_CFG, "ls-tree", "--name-only", head, root + "/"):
+            unknown_roots.append(root)
+            continue
+        checked_roots.append(root)
+        if _ref_blob(repo, head, root + "/docs/evals/evals.json") is not None:
+            skipped_have_suite.append(root)
+            continue
+        files = sorted(
+            rel for rel in changed
+            if (rel == root or rel.startswith(root + "/"))
+            and "docs" not in rel.split("/")[:-1]  # skip the docs bundle itself
+        )
+        if not files:
+            no_new_symbols.append(root)
+            continue
+        added = _diff_side_lines(
+            _git_lines(repo, *_GIT_GATE_CFG, "diff", *_GIT_DIFF_FLAGS, "-U0",
+                       base, head, "--", *(f":(literal){f}" for f in files)),
+            sides="+")
+        cands = sorted({t for t in _TOKEN_RE.findall(added)
+                        if _is_new_symbol_candidate(t)})
+        if len(cands) > _NEW_SYMBOL_CAP:
+            capped.append(root)
+            cands = cands[:_NEW_SYMBOL_CAP]
+        new_syms = [t for t in cands
+                    if not _symbol_present_at_ref(repo, t, base, root)]
+        if new_syms:
+            bootstrap.append({
+                "root": root,
+                "new_symbols": new_syms,
+                "changed_files": files,
+            })
+        else:
+            no_new_symbols.append(root)
+
+    out = {
+        "base": base,
+        "head": head,
+        "checked_roots": checked_roots,
+        "skipped_have_suite": skipped_have_suite,
+        "no_new_symbols": no_new_symbols,
+        "unknown_roots": unknown_roots,
+        "capped_roots": capped,
+        "bootstrap_candidates": bootstrap,
+    }
+    print(json.dumps(out, ensure_ascii=False))
+    return 0
+
+
 # ---------------------------------------------------------------------------
 # enforce-writeset: deterministic, file-level write-domain guard.
 #
@@ -1182,6 +1310,15 @@ def enforce_writeset(args: argparse.Namespace) -> int:
         # well as the rename target's content.
         was_tracked = this_run[rel] != "??"
 
+        # (a0) opt-in: the root's own evals suite, at its one legal path.
+        # Still behind an explicit flag even though the skill now passes it by
+        # default — the *tool* must not silently gain write power, so that any
+        # other caller (and every existing script) keeps the strict 7-basename
+        # domain unless it asks. Flag off ⇒ byte-identical to before.
+        if getattr(args, "allow_evals", False) and _is_chain_evals_path(rel):
+            allowed_touched.append(rel)
+            continue
+
         # (a) basename not in the write-domain allow-list (CASE-SENSITIVE).
         if basename not in ALLOWED_DOC_BASENAMES:
             violations_basename.append(rel)
@@ -1296,6 +1433,30 @@ def main(argv: list[str]) -> int:
                                  "containing the current working directory")
     p_eval_add.set_defaults(func=eval_add_signal)
 
+    p_eval_bootstrap = sub.add_parser("eval-bootstrap-signal")
+    p_eval_bootstrap.add_argument(
+        "--format",
+        choices=["text", "json"],
+        default="json",
+        help="accepted for symmetry with the other subcommands but ignored: "
+             "eval-bootstrap-signal always prints JSON",
+    )
+    p_eval_bootstrap.add_argument("--base", required=True, metavar="REF",
+                                  help="git ref the MR diff starts from (same value the "
+                                       "freshness/coverage gates already resolved)")
+    p_eval_bootstrap.add_argument("--head", default="HEAD", metavar="REF",
+                                  help="git ref of the MR result state (default: HEAD)")
+    p_eval_bootstrap.add_argument("--repo-root", default=None, metavar="DIR",
+                                  help="repository checkout to operate on; defaults to the "
+                                       "repo containing the current working directory")
+    p_eval_bootstrap.add_argument("--roots", required=True, metavar="LIST",
+                                  help="comma-separated doc roots THIS run edited. Required and "
+                                       "never inferred: the ancestor walk the other two gates use "
+                                       "finds roots by evals presence, which is false by "
+                                       "construction here — re-deriving it would put a second "
+                                       "definition of 'doc root' in a second place")
+    p_eval_bootstrap.set_defaults(func=eval_bootstrap_signal)
+
     p_enforce = sub.add_parser(
         "enforce-writeset",
         help="deterministic file-level write-domain guard: snapshot a git baseline "
@@ -1314,6 +1475,11 @@ def main(argv: list[str]) -> int:
                          help="after editing: revert this run's out-of-domain changes")
     p_enforce.add_argument("--no-revert", action="store_true",
                            help="report violations but do NOT revert any file")
+    p_enforce.add_argument("--allow-evals", action="store_true",
+                           help="also admit each touched doc root's own "
+                                "docs/evals/evals.json (matched by path shape, not "
+                                "basename). Off by default — the strict 7-basename "
+                                "domain is what a normal distillation run gets.")
     p_enforce.set_defaults(func=enforce_writeset)
 
     args = parser.parse_args(argv)

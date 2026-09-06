@@ -8,6 +8,7 @@ import android.media.ExifInterface
 import android.net.Uri
 import java.io.File
 import java.io.FileOutputStream
+import java.io.InputStream
 import java.util.UUID
 
 /**
@@ -71,6 +72,26 @@ class ImageStore(context: Context) {
 
     fun deleteAttrDir(itemId: Long, defId: Long) {
         File(root, "items/$itemId/$defId").deleteRecursively()
+    }
+
+    /** 导入落盘：把数据包中的图片字节写入 items/{itemId}/{defId}/，返回相对路径；失败返回 null */
+    fun importFile(itemId: Long, defId: Long, fileName: String, source: InputStream): String? {
+        val safeName = File(fileName).name
+        if (safeName.isBlank()) return null
+        val dir = File(root, "items/$itemId/$defId").apply { mkdirs() }
+        val dst = File(dir, safeName)
+        return try {
+            FileOutputStream(dst).use { source.copyTo(it) }
+            relativeTo(dst)
+        } catch (e: Exception) {
+            dst.delete()
+            null
+        }
+    }
+
+    /** 按相对目录路径清理（导入失败回滚用，路径形如 items/{itemId}/{defId}） */
+    fun deleteAttrDirPath(relativeDirPath: String) {
+        runCatching { fileOf(relativeDirPath).deleteRecursively() }
     }
 
     /** 清理暂存区（启动时调用，丢弃上次未保存的草稿图） */

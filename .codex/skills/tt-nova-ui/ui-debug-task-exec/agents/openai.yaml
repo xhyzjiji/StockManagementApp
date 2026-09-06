@@ -1,0 +1,4 @@
+interface:
+  display_name: "UI Debug Task Exec"
+  short_description: "Create TT Nova UI debug tasks"
+  default_prompt: "Create or dry-run a TT Nova UI ByTest/Bits debug task for an existing case_set_id and package URL."

@@ -4,6 +4,7 @@ import android.content.Context
 import android.text.InputType
 import android.view.LayoutInflater
 import android.view.View
+import android.widget.TextView
 import android.widget.Toast
 import androidx.fragment.app.FragmentActivity
 import com.example.stockmanagementsystem.R
@@ -12,6 +13,7 @@ import com.example.stockmanagementsystem.data.AttrType
 import com.example.stockmanagementsystem.data.StockMath
 import com.example.stockmanagementsystem.databinding.DialogAttrDefBinding
 import com.example.stockmanagementsystem.databinding.DialogImagePreviewBinding
+import com.example.stockmanagementsystem.databinding.DialogOptionsBinding
 import com.example.stockmanagementsystem.databinding.DialogStockOpBinding
 import com.example.stockmanagementsystem.databinding.DialogTextInputBinding
 import com.example.stockmanagementsystem.databinding.DialogWarehouseBinding
@@ -34,6 +36,38 @@ object Dialogs {
             .setNegativeButton(R.string.action_cancel, null)
             .setPositiveButton(R.string.action_delete) { _, _ -> onConfirm() }
             .show()
+    }
+
+    /**
+     * 说明文本 + 竖排选项弹窗（Material3 下 setMessage 与 setItems 混用会吞掉列表项，
+     * 统一走自定义视图）。[message] 为空时隐藏说明行；点选项后自动关闭并回调其下标。
+     */
+    fun options(
+        context: Context,
+        title: Int,
+        message: String = "",
+        options: List<String>,
+        negativeText: Int = R.string.action_cancel,
+        onPick: (Int) -> Unit,
+    ) {
+        val vb = DialogOptionsBinding.inflate(LayoutInflater.from(context))
+        vb.textMessage.text = message
+        vb.textMessage.visibility = if (message.isEmpty()) View.GONE else View.VISIBLE
+        val dialog = MaterialAlertDialogBuilder(context)
+            .setTitle(title)
+            .setView(vb.root)
+            .setNegativeButton(negativeText, null)
+            .create()
+        options.forEachIndexed { index, label ->
+            val row = TextView(context, null, 0, R.style.DialogOptionRow)
+            row.text = label
+            row.setOnClickListener {
+                dialog.dismiss()
+                onPick(index)
+            }
+            vb.optionContainer.addView(row)
+        }
+        dialog.show()
     }
 
     /** 单输入框（类目名等）。返回 null 表示校验未通过 */
@@ -274,24 +308,22 @@ object Dialogs {
         unit: String,
         onPick: (StockMath.InPricing, Double?) -> Unit,
     ) {
-        val items = arrayOf(
-            context.getString(R.string.pricing_first_price),
-            context.getString(R.string.pricing_dilute),
-            context.getString(R.string.pricing_correct),
-        )
-        MaterialAlertDialogBuilder(context)
-            .setTitle(R.string.pricing_title)
-            .setMessage(context.getString(R.string.pricing_message, Fmt.qtyWithUnit(oldQty, unit)))
-            .setItems(items) { dlg, which ->
-                dlg.dismiss()
-                when (which) {
-                    0 -> onPick(StockMath.InPricing.FIRST_PRICE, null)
-                    1 -> onPick(StockMath.InPricing.WEIGHTED, null)
-                    else -> inputCorrectedValue(context, onPick)
-                }
+        options(
+            context,
+            R.string.pricing_title,
+            context.getString(R.string.pricing_message, Fmt.qtyWithUnit(oldQty, unit)),
+            listOf(
+                context.getString(R.string.pricing_first_price),
+                context.getString(R.string.pricing_dilute),
+                context.getString(R.string.pricing_correct),
+            ),
+        ) { which ->
+            when (which) {
+                0 -> onPick(StockMath.InPricing.FIRST_PRICE, null)
+                1 -> onPick(StockMath.InPricing.WEIGHTED, null)
+                else -> inputCorrectedValue(context, onPick)
             }
-            .setNegativeButton(R.string.action_cancel, null)
-            .show()
+        }
     }
 
     /** 手动修正老库存总价输入框（CORRECT 分支用） */

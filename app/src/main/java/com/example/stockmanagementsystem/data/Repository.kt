@@ -22,6 +22,9 @@ class Repository private constructor(context: Context) {
     private val dbHelper = DbHelper(context.applicationContext)
     val imageStore = ImageStore(context.applicationContext)
 
+    /** 仓库数据导入导出入口：与 Repository 共用同一数据库连接与图片目录 */
+    val transfer: WarehouseTransfer by lazy { WarehouseTransfer(db, imageStore) }
+
     private val db: SQLiteDatabase get() = dbHelper.writableDatabase
 
     // ---------------- 仓库 ----------------

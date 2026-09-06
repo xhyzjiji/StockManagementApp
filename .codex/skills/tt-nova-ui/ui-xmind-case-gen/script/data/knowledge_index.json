@@ -1,0 +1,37 @@
+{
+  "business_lines": [
+    {
+      "id": "ic",
+      "name": "合规账号安全",
+      "keywords": ["申诉", "appeal", "selfie", "jumio", "封禁", "underage", "ban", "age appeal", "年龄申诉", "age verify", "age gate", "kids", "family pairing", "comment permission", "privacy", "dm permission", "合规", "账号安全", "incode", "facial age"],
+      "accounts_doc": "https://bytedance.larkoffice.com/wiki/H6TKwRr25ipz1JkqFqVcIsRGnZe?sheet=ec9bac",
+      "routes_doc": "",
+      "Knowledge_doc": "https://bytedance.larkoffice.com/wiki/H6TKwRr25ipz1JkqFqVcIsRGnZe?sheet=ec9bac"
+    },
+    {
+      "id": "revenue",
+      "name": "营收",
+      "keywords": ["送礼", "礼物", "钱包", "充值", "SuperFan", "粉丝团", "coin", "gift", "recharge", "营收", "超粉", "diamond", "钻石"],
+      "accounts_doc": "https://bytedance.larkoffice.com/wiki/K82TwgtXhiUCsMkX8WucQV1ynyg",
+      "routes_doc": "https://bytedance.larkoffice.com/wiki/KAimw9Rc1iSPYnkyZrhcYyYunBc",
+      "Knowledge_doc": "https://bytedance.larkoffice.com/wiki/GWqZwxOz1il70BkmedbcdZ15nib"
+    },
+    {
+      "id": "game",
+      "name": "游戏",
+      "keywords": ["竞猜", "游戏直播", "游戏开播", "guessing", "game", "竞猜pin", "Guessing Game"],
+      "accounts_doc": "https://bytedance.larkoffice.com/wiki/OFMrw2OaziyN6YkdaMrcjqYbnob",
+      "routes_doc": "https://bytedance.larkoffice.com/wiki/GNJbwKf3LiCKJckWMTNcZkRYnef",
+      "Knowledge_doc": "https://bytedance.larkoffice.com/wiki/OFMrw2OaziyN6YkdaMrcjqYbnob"
+    },
+    {
+      "id": "wallet",
+      "name": "钱包",
+      "keywords": ["钱包", "MP", "pay", "payment", "recharge"],
+      "accounts_doc": "https://bytedance.larkoffice.com/wiki/Jg6mwHEmNiIw4WkJmDCcRJHZnFf",
+      "routes_doc": "https://bytedance.larkoffice.com/wiki/NYwrwcwyuipW84kRazqcYNjPnlc",
+      "Knowledge_doc": "https://bytedance.larkoffice.com/wiki/TdhTwOxNtixADLkti2DcWCbonNg"
+    }
+  ],
+  "default": "revenue"
+}

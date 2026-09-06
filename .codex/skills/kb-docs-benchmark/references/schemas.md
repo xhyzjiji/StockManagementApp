@@ -424,11 +424,23 @@ Aggregated compare output at `<workspace>/benchmark.json`.
 ## docs_quality_suggestions.json
 
 Optional structured suggestions written at `<workspace>/docs_quality_suggestions.json` by Docs Quality Analysis Mode.
-The prose fields should be written in English; category IDs, priorities, file paths, assertion IDs, and code symbols remain unchanged.
+
+The prose fields are written in **Chinese**; category IDs, priorities, file paths, assertion IDs, and code
+symbols remain unchanged. (This line used to say English, which contradicted
+`agents/docs_quality_analyzer.md` — the file that actually instructs the writer. The analyzer spec wins and
+gives the reason: these land on a result card read by the doc owners, so English prose there costs a
+translation step at exactly the moment someone is deciding whether to act. Two docs disagreeing about the
+contract is worse than either choice; corrected here rather than left for the next reader to arbitrate.)
+
+`overall_recommendation` is the whole round's suggestions synthesised into **one paragraph** — the
+"what should I do now" answer, as opposed to `suggestions`, which is the lookup table of coordinates.
+It is what the result card renders. Omit the field entirely when there is nothing to recommend; do not
+write a placeholder sentence. See `agents/docs_quality_analyzer.md` for how to write it.
 
 ```json
 {
   "summary": "Docs improve public entry questions but do not cover retry behavior clearly.",
+  "overall_recommendation": "先补 workflow.md 的重试路径（q2 就栽在这），其余两条都是同一处措辞问题，可以一起顺手改掉。",
   "suggestions": [
     {
       "priority": "high",

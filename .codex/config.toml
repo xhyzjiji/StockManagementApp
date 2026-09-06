@@ -2,11 +2,8 @@
 hooks = true
 
 [mcp_servers.adk-mobile]
-command = "npx"
+command = "adk-mobile-mcp"
 args = [
-  "-y",
-  "--registry=https://bnpm.byted.org",
-  "@byted-tiktok/adk-mobile-mcp@latest",
   "--workflow-dir",
   ".ttadk/.adk-mobile"
 ]
