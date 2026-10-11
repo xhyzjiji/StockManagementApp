@@ -1,22 +1,39 @@
+[model_providers.ttadk_app]
+name = "ttadk_app"
+base_url = "https://llmbox-global.byteintl.net/"
+wire_api = "responses"
+
+  [model_providers.ttadk_app.http_headers]
+  X-Source = "ttadk"
+
+  [model_providers.ttadk_app.auth]
+  command = "ttadk"
+  args = [ "get_params", "--sso", "sso" ]
+  timeoutms = 5_000
+  refreshintervalms = 2_000_000
+
 [features]
 hooks = true
 
-[mcp_servers.adk-mobile]
-command = "adk-mobile-mcp"
-args = [
-  "--workflow-dir",
-  ".ttadk/.adk-mobile"
-]
-
-  [mcp_servers.adk-mobile.env]
-  platform = "Android"
-
-[mcp_servers.alchemist]
-command = "npx"
-args = [
-  "-y",
-  "--registry=https://bnpm.byted.org",
-  "@byted/alchemist-mcp@latest",
-  "mcp"
-]
-env = { }
+#[mcp_servers.adk-mobile]
+#command = "npx"
+#args = [
+#  "-y",
+#  "--registry=https://bnpm.byted.org",
+#  "@byted-tiktok/adk-mobile-mcp@latest",
+#  "--workflow-dir",
+#  ".ttadk/.adk-mobile"
+#]
+#
+#  [mcp_servers.adk-mobile.env]
+#  platform = "Android"
+#
+#[mcp_servers.alchemist]
+#command = "npx"
+#args = [
+#  "-y",
+#  "--registry=https://bnpm.byted.org",
+#  "@byted/alchemist-mcp@latest",
+#  "mcp"
+#]
+#env = { }
